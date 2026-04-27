@@ -27,7 +27,7 @@ def render_payoff_chart(strategies: list, spot_price: float, width: int = 800, h
     fig = go.Figure()
     
     # Línea de referencia en cero
-    fig.add_hline(y=0, line_dash="dash", line_color="rgba(255,255,255,0.3)", line_width=1)
+    fig.add_hline(y=0, line_dash="dash", line_color="rgba(28,33,24,0.25)", line_width=1)
     
     # Línea vertical en precio actual
     fig.add_vline(
@@ -59,29 +59,29 @@ def render_payoff_chart(strategies: list, spot_price: float, width: int = 800, h
     fig.update_layout(
         title={
             'text': '📊 Diagrama de Payoff - Estrategias de Cobertura',
-            'font': {'size': 20, 'color': '#fff', 'family': 'DM Sans'}
+            'font': {'size': 18, 'color': '#1c2118', 'family': 'DM Sans'}
         },
         xaxis_title='Precio FOB (USD/tn)',
         yaxis_title='P&L (USD/tn)',
         hovermode='x unified',
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        font=dict(color='#fff', family='DM Sans'),
+        font=dict(color='#1c2118', family='DM Sans'),
         xaxis=dict(
-            gridcolor='rgba(255,255,255,0.1)',
+            gridcolor='rgba(28,33,24,0.08)',
             showgrid=True,
             zeroline=False
         ),
         yaxis=dict(
-            gridcolor='rgba(255,255,255,0.1)',
+            gridcolor='rgba(28,33,24,0.08)',
             showgrid=True,
             zeroline=True,
-            zerolinecolor='rgba(255,255,255,0.3)',
+            zerolinecolor='rgba(28,33,24,0.25)',
             zerolinewidth=2
         ),
         legend=dict(
-            bgcolor='rgba(26,107,60,0.3)',
-            bordercolor='rgba(255,255,255,0.2)',
+            bgcolor='rgba(255,255,255,0.85)',
+            bordercolor='#dde0d5',
             borderwidth=1
         ),
         width=width,
@@ -93,37 +93,44 @@ def render_payoff_chart(strategies: list, spot_price: float, width: int = 800, h
 
 def render_strategy_card(strategy_data: dict, spot_price: float, key_prefix: str):
     """
-    Renderiza una tarjeta de estrategia predefinida
-    
-    Args:
-        strategy_data: Dict con datos de la estrategia
-        spot_price: Precio FOB actual
-        key_prefix: Prefijo para keys únicos de Streamlit
+    Renderiza una tarjeta de estrategia predefinida, compacta y alineada al HTML original.
     """
     strategy = Strategy(
         name=strategy_data['name'],
         legs=strategy_data['legs'],
         color=strategy_data['color']
     )
-    
-    # Crear columnas para la tarjeta
-    col_info, col_btn = st.columns([4, 1])
-    
-    with col_info:
-        st.markdown(f"**{strategy_data['name']}**")
-        st.caption(strategy_data['desc'])
-        
-        # Mostrar costo
-        cost = strategy.total_cost()
-        cost_color = "green" if cost > 0 else "red" if cost < 0 else "gray"
-        cost_text = f"Costo neto: ${abs(cost):.2f}" if cost < 0 else f"Crédito neto: ${cost:.2f}" if cost > 0 else "Costo: ~$0"
-        st.markdown(f":{cost_color}[{cost_text}]")
-    
-    with col_btn:
-        if st.button("Usar", key=f"{key_prefix}_{strategy_data['name']}", use_container_width=True):
-            return strategy
-    
-    # Alerta si existe
+
+    cost = strategy.total_cost()
+    if cost < 0:
+        cost_text = f"Costo neto: ${abs(cost):.2f}"
+        cost_class = "debit"
+    elif cost > 0:
+        cost_text = f"Crédito neto: ${cost:.2f}"
+        cost_class = "credit"
+    else:
+        cost_text = "Costo: ~$0"
+        cost_class = "zero"
+
+    card_col, action_col = st.columns([5.6, 1.15])
+
+    with card_col:
+        st.markdown(
+            f"""
+            <div class="preset-card" style="border-left-color:{strategy_data['color']};">
+                <div class="preset-name">{strategy_data['name']}</div>
+                <div class="preset-desc">{strategy_data['desc']}</div>
+                <div class="preset-cost {cost_class}">{cost_text}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    selected = None
+    with action_col:
+        if st.button("Agregar", key=f"{key_prefix}_{strategy_data['name']}", use_container_width=True):
+            selected = strategy
+
     if strategy_data.get('alert'):
         alerts = get_strategy_alerts()
         if strategy_data['name'] in alerts:
@@ -132,8 +139,8 @@ def render_strategy_card(strategy_data: dict, spot_price: float, key_prefix: str
                 st.error(alert_data['mensaje'], icon="⚠️")
             elif alert_data['tipo'] == 'warning':
                 st.warning(alert_data['mensaje'], icon="⚡")
-    
-    return None
+
+    return selected
 
 
 def render_comparison_table(strategies: list, spot_prices: list):
