@@ -935,18 +935,29 @@ def render_kpis(items: List[Tuple[str, Any, str]]) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
+
 def cascade_bar(label: str, value: float, pct: float, cls: str) -> str:
-    width = max(3.0, min(100.0, abs(pct)))
-    sign_value = fmt_signed(value) if value < 0 else fmt_num(value)
-    return f"""
-    <div class="cascade-row">
-        <div>
-            <div class="cascade-label"><span>{html_escape(label)}</span><span class="cascade-value">{sign_value}</span></div>
-            <div class="cascade-bar-track"><div class="cascade-bar {cls}" style="width:{width:.1f}%">{fmt_num(abs(pct), 1)}%</div></div>
-        </div>
-        <div></div>
-    </div>
+    """Return a single-line HTML block.
+
+    Streamlit/Markdown can render indented multiline HTML as a code block.
+    Keeping these snippets unindented prevents raw <div> fragments from
+    appearing in the UI.
     """
+    pct_value = safe_float(pct, 0.0)
+    width = max(3.0, min(100.0, abs(pct_value)))
+    display_value = fmt_signed(value) if value < 0 else fmt_num(value)
+    return (
+        '<div class="cascade-row">'
+        '<div>'
+        f'<div class="cascade-label"><span>{html_escape(label)}</span>'
+        f'<span class="cascade-value">{display_value}</span></div>'
+        '<div class="cascade-bar-track">'
+        f'<div class="cascade-bar {html_escape(cls)}" style="width:{width:.1f}%">{fmt_num(abs(pct_value), 1)}%</div>'
+        '</div>'
+        '</div>'
+        '<div></div>'
+        '</div>'
+    )
 
 
 def render_grain_cascade(crop: str, position: str, fob: float, ret_pct: float, fobbing: float, fas_obj: float) -> float:
@@ -954,20 +965,20 @@ def render_grain_cascade(crop: str, position: str, fob: float, ret_pct: float, f
     fobbing_pct = (fobbing / fob * 100.0) if fob else 0.0
     margin = calc["fas"] - fas_obj
     color = "var(--success)" if margin >= 0 else "var(--danger)"
-    html = f"""
-    <div class="clean-panel-tight">
-        <div style="font-weight:850;color:var(--es-green-700);font-size:16px;margin-bottom:12px;">
-            Exportacion grano {html_escape(compact_pos_label(position))}
-        </div>
-        <div class="cascade-wrap">
-            {cascade_bar('FOB ' + CROP_LABELS.get(crop, crop), fob, 100.0, 'fob')}
-            {cascade_bar('Retencion ' + fmt_num(ret_pct, 1) + '%', -calc['ret_value'], ret_pct, 'ret')}
-            {cascade_bar('Fobbing', -fobbing, fobbing_pct, 'cost')}
-            <div class="cascade-result"><span>FAS Teorico (CTP)</span><span>{fmt_num(calc['fas'])}</span></div>
-            <div class="cascade-note"><span>Margen export. vs obj {fmt_num(fas_obj, 1)}</span><strong style="color:{color};">{fmt_signed(margin)}</strong></div>
-        </div>
-    </div>
-    """
+    html = "".join(
+        [
+            '<div class="clean-panel-tight">',
+            f'<div style="font-weight:850;color:var(--es-green-700);font-size:16px;margin-bottom:12px;">Exportacion grano {html_escape(compact_pos_label(position))}</div>',
+            '<div class="cascade-wrap">',
+            cascade_bar('FOB ' + CROP_LABELS.get(crop, crop), fob, 100.0, 'fob'),
+            cascade_bar('Retencion ' + fmt_num(ret_pct, 1) + '%', -calc['ret_value'], ret_pct, 'ret'),
+            cascade_bar('Fobbing', -fobbing, fobbing_pct, 'cost'),
+            f'<div class="cascade-result"><span>FAS Teorico (CTP)</span><span>{fmt_num(calc["fas"])}</span></div>',
+            f'<div class="cascade-note"><span>Margen export. vs obj {fmt_num(fas_obj, 1)}</span><strong style="color:{color};">{fmt_signed(margin)}</strong></div>',
+            '</div>',
+            '</div>',
+        ]
+    )
     st.markdown(html, unsafe_allow_html=True)
     return calc["fas"]
 
@@ -985,22 +996,22 @@ def render_crush_cascade(position: str, values: Dict[str, float], fas_obj: float
     bruto = calc["bruto"] or 1.0
     margin = calc["fas"] - fas_obj
     color = "var(--success)" if margin >= 0 else "var(--danger)"
-    html = f"""
-    <div class="clean-panel-tight">
-        <div style="font-weight:850;color:#8a6817;font-size:16px;margin-bottom:12px;">
-            Crushing subproductos {html_escape(compact_pos_label(position))}
-        </div>
-        <div class="cascade-wrap">
-            {cascade_bar('Aceite (' + fmt_num(values['fob_aceite'], 1) + ' x ' + fmt_num(values['coef_aceite'], 2) + ')', calc['aceite_bruto'], calc['aceite_bruto']/bruto*100, 'fob')}
-            {cascade_bar('Harina (' + fmt_num(values['fob_harina'], 1) + ' x ' + fmt_num(values['coef_harina'], 2) + ')', calc['harina_bruta'], calc['harina_bruta']/bruto*100, 'fob')}
-            {cascade_bar('Ret subprod ' + fmt_num(values['ret_sub_pct'], 1) + '%', -calc['ret_sub'], values['ret_sub_pct'], 'ret')}
-            {cascade_bar('Fobbing subprod', -calc['fobbing_sub'], calc['fobbing_sub']/bruto*100, 'cost')}
-            {cascade_bar('Gasto industrial', -calc['gto_ind'], calc['gto_ind']/bruto*100, 'cost')}
-            <div class="cascade-result"><span>FAS Crushing</span><span>{fmt_num(calc['fas'])}</span></div>
-            <div class="cascade-note"><span>Margen crush vs obj {fmt_num(fas_obj, 1)}</span><strong style="color:{color};">{fmt_signed(margin)}</strong></div>
-        </div>
-    </div>
-    """
+    html = "".join(
+        [
+            '<div class="clean-panel-tight">',
+            f'<div style="font-weight:850;color:#8a6817;font-size:16px;margin-bottom:12px;">Crushing subproductos {html_escape(compact_pos_label(position))}</div>',
+            '<div class="cascade-wrap">',
+            cascade_bar('Aceite (' + fmt_num(values['fob_aceite'], 1) + ' x ' + fmt_num(values['coef_aceite'], 2) + ')', calc['aceite_bruto'], calc['aceite_bruto'] / bruto * 100, 'fob'),
+            cascade_bar('Harina (' + fmt_num(values['fob_harina'], 1) + ' x ' + fmt_num(values['coef_harina'], 2) + ')', calc['harina_bruta'], calc['harina_bruta'] / bruto * 100, 'fob'),
+            cascade_bar('Ret subprod ' + fmt_num(values['ret_sub_pct'], 1) + '%', -calc['ret_sub'], values['ret_sub_pct'], 'ret'),
+            cascade_bar('Fobbing subprod', -calc['fobbing_sub'], calc['fobbing_sub'] / bruto * 100, 'cost'),
+            cascade_bar('Gasto industrial', -calc['gto_ind'], calc['gto_ind'] / bruto * 100, 'cost'),
+            f'<div class="cascade-result"><span>FAS Crushing</span><span>{fmt_num(calc["fas"])}</span></div>',
+            f'<div class="cascade-note"><span>Margen crush vs obj {fmt_num(fas_obj, 1)}</span><strong style="color:{color};">{fmt_signed(margin)}</strong></div>',
+            '</div>',
+            '</div>',
+        ]
+    )
     st.markdown(html, unsafe_allow_html=True)
     return calc["fas"]
 
