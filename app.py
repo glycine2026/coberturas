@@ -238,6 +238,8 @@ with st.sidebar:
         if st.button("🌾 Actualizar FOB", use_container_width=True):
             with st.spinner("Obteniendo datos de la Bolsa de Cereales..."):
                 try:
+                    if hasattr(obtener_datos_bolsa, "clear"):
+                        obtener_datos_bolsa.clear()
                     datos = obtener_datos_bolsa()
                     if datos and len(datos) > 0:
                         st.session_state.datos_bolsa = datos
@@ -457,7 +459,7 @@ with tab1:
                         col: '${:.2f}' 
                         for col in df.columns 
                         if col not in ['Escenario', 'Variación']
-                    }).applymap(
+                    }).map(
                         color_pnl,
                         subset=[col for col in df.columns if col not in ['Escenario', 'Variación']]
                     ),
@@ -517,14 +519,10 @@ with tab3:
         }
         
         fob_precio = precios.get(fob_keys.get(cultivo_lower, 'soja'), 0)
-        
-        # Calcular métricas
-        resultado_grano = calcular_exportacion_grano(
-            fob=fob_precio,
-            cultivo=cultivo_lower,
-            precio_fas_manual=precio_fas_manual
-        )
-        
+                
+        st.markdown("### Simulador de escenario — Baja de retenciones")
+        reduccion_ret = st.slider("Reducción de retenciones", 0, 100, 25, 5, format="-%d%%")
+
         # COLUMNAS PRINCIPALES
         col1, col2 = st.columns(2)
         
@@ -536,32 +534,48 @@ with tab3:
             with st.expander("⚙️ Ajustar parámetros", expanded=False):
                 fob_indice = st.number_input(
                     "FOB ÍNDICE",
+                    min_value=0.0,
                     value=float(fob_precio),
-                    key="fob_indice_input"
+                    step=1.0,
+                    key=f"fob_indice_input_{cultivo_lower}_{posicion}"
                 )
                 ret_porcentaje = st.number_input(
                     "RET %",
-                    value=24.0 if cultivo_lower == 'soja' else 12.0,
+                    value=(26.0 if cultivo_lower == 'soja' else 7.0),
                     step=0.1,
-                    key="ret_porcentaje_input"
+                    key=f"ret_porcentaje_input_{cultivo_lower}_{posicion}"
                 )
                 fobbing = st.number_input(
                     "FOBBING",
-                    value=12.0,
+                    value=(12.0 if cultivo_lower == 'soja' else 11.0 if cultivo_lower in ['maíz', 'maiz'] else 13.0 if cultivo_lower == 'trigo' else 14.0),
                     step=0.5,
-                    key="fobbing_input"
+                    key=f"fobbing_input_{cultivo_lower}_{posicion}"
+                )
+                precio_fas_objetivo = st.number_input(
+                    "FAS OBJETIVO (U$S)",
+                    min_value=0.0,
+                    value=float(precio_fas_manual) if precio_fas_manual is not None else (323.0 if cultivo_lower == 'soja' else 185.0 if cultivo_lower in ['maíz', 'maiz'] else 216.0 if cultivo_lower == 'trigo' else 475.0),
+                    step=1.0,
+                    key=f"fas_objetivo_input_{cultivo_lower}_{posicion}"
                 )
             
+            # Calcular métricas con los inputs editables
+            resultado_grano = calcular_exportacion_grano(
+                fob=fob_indice,
+                cultivo=cultivo_lower,
+                precio_fas_manual=precio_fas_objetivo
+            )
+
             # Mostrar métricas
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">FOB {cultivo}</div>
-                <div class="metric-value">${fob_precio:.2f}</div>
+                <div class="metric-value">${fob_indice:.2f}</div>
                 <div class="metric-delta-positive">100.0%</div>
             </div>
             """, unsafe_allow_html=True)
             
-            retencion_valor = fob_precio * (ret_porcentaje / 100)
+            retencion_valor = fob_indice * (ret_porcentaje / 100)
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">Retención {ret_porcentaje}%</div>
@@ -579,12 +593,28 @@ with tab3:
             """, unsafe_allow_html=True)
             
             # FAS Teórico (CTP)
-            fas_teorico = fob_precio - retencion_valor - fobbing
+            fas_teorico = fob_indice - retencion_valor - fobbing
             st.markdown("---")
             st.markdown(f"""
             <div class="metric-card" style="border-left-color: #1a5430; background: #f0f9f4;">
                 <div class="metric-label">FAS Teórico (CTP)</div>
                 <div class="metric-value" style="color: #1a5430;">${fas_teorico:.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="metric-card" style="border-left-color: #c9a961;">
+                <div class="metric-label">FAS Objetivo</div>
+                <div class="metric-value">${precio_fas_objetivo:.2f}</div>
+                <div class="metric-delta-positive">Spread CTP vs objetivo: ${fas_teorico - precio_fas_objetivo:+.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            fob_necesario = (precio_fas_objetivo + fobbing) / (1 - ret_porcentaje / 100) if ret_porcentaje < 100 else 0
+            ret_implicita = (1 - (precio_fas_objetivo + fobbing) / fob_indice) * 100 if fob_indice > 0 else 0
+            st.markdown(f"""
+            <div class="metric-card" style="border-left-color:#2563eb;">
+                <div class="metric-label">FOB Necesario para FAS Objetivo</div>
+                <div class="metric-value">${fob_necesario:.2f}</div>
+                <div class="metric-delta-positive">Retención implícita: {ret_implicita:.2f}% | Gap: {ret_implicita - ret_porcentaje:+.2f} pp</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -701,6 +731,17 @@ with tab3:
                 """, unsafe_allow_html=True)
             else:
                 st.info(f"💡 El crushing solo aplica para Soja. Actualmente seleccionado: {cultivo}")
+
+        st.divider()
+        st.subheader("📉 Escenario con reducción de retenciones")
+        ret_nueva = (ret_porcentaje / 100) * (1 - reduccion_ret / 100)
+        fas_nuevo = fob_indice * (1 - ret_nueva) - fobbing
+        col_act, col_red = st.columns(2)
+        with col_act:
+            st.metric("Escenario actual - FAS teórico", f"${fas_teorico:.2f}", f"Retención {ret_porcentaje:.1f}%")
+        with col_red:
+            st.metric("Escenario con reducción - FAS teórico", f"${fas_nuevo:.2f}", f"Mejora ${fas_nuevo - fas_teorico:+.2f} | Ret. {ret_nueva*100:.1f}%")
+        st.info(f"Conexión con coberturas: si cubrís a FOB ${fob_indice:.1f} con un PUT, el piso de FAS neto estimado es ${fas_teorico:.2f}/tn menos la prima pagada.")
 
 # ═══════════════════════════════════════════════════════════
 # FOOTER

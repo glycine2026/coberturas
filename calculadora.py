@@ -17,10 +17,10 @@ def calcular_exportacion_grano(fob, cultivo='soja', precio_fas_manual=None):
     
     # Parámetros según cultivo
     parametros = {
-        'soja': {'retencion_pct': 24.0, 'fobbing': 12.0},
-        'maiz': {'retencion_pct': 12.0, 'fobbing': 12.0},
-        'trigo': {'retencion_pct': 12.0, 'fobbing': 12.0},
-        'girasol': {'retencion_pct': 7.0, 'fobbing': 12.0}
+        'soja': {'retencion_pct': 26.0, 'fobbing': 12.0},
+        'maiz': {'retencion_pct': 7.0, 'fobbing': 11.0},
+        'trigo': {'retencion_pct': 7.0, 'fobbing': 13.0},
+        'girasol': {'retencion_pct': 7.0, 'fobbing': 14.0}
     }
     
     params = parametros.get(cultivo, parametros['soja'])
@@ -104,9 +104,9 @@ def calcular_retenciones(fob, cultivo='soja'):
     """
     
     retenciones_pct = {
-        'soja': 24.0,
-        'maiz': 12.0,
-        'trigo': 12.0,
+        'soja': 26.0,
+        'maiz': 7.0,
+        'trigo': 7.0,
         'girasol': 7.0
     }
     
