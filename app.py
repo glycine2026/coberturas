@@ -278,7 +278,7 @@ with st.sidebar:
     )
     
     # Selector de posición (se llena dinámicamente)
-    if st.session_state.datos_bolsa:
+    if st.session_state.datos_bolsa is not None and len(st.session_state.datos_bolsa) > 0:
         posiciones = list(st.session_state.datos_bolsa.keys())
         posicion = st.selectbox(
             "Posición 1",
@@ -308,13 +308,13 @@ with st.sidebar:
     
     # Información de estado
     st.caption("📅 Estado del sistema")
-    if st.session_state.datos_bolsa:
+    if st.session_state.datos_bolsa is not None and len(st.session_state.datos_bolsa) > 0:
         num_posiciones = len(st.session_state.datos_bolsa)
         st.caption(f"✓ {num_posiciones} posiciones cargadas")
     else:
         st.caption("⚠ Sin datos de FOB")
     
-    if st.session_state.datos_a3:
+    if st.session_state.datos_a3 is not None and not st.session_state.datos_a3.empty:
         st.caption("✓ Datos A3 disponibles")
     else:
         st.caption("⚠ Sin datos A3")
@@ -336,7 +336,7 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     st.header("Estrategias de Cobertura")
     
-    if not st.session_state.datos_bolsa:
+    if st.session_state.datos_bolsa is None or len(st.session_state.datos_bolsa) == 0:
         st.markdown("""
         <div class="alert-warning">
             <strong>⚠ No hay datos disponibles</strong><br>
@@ -361,7 +361,7 @@ with tab2:
 with tab3:
     st.header("🧮 Retenciones & FAS Teórico")
     
-    if not st.session_state.datos_bolsa or not posicion:
+    if st.session_state.datos_bolsa is None or len(st.session_state.datos_bolsa) == 0 or not posicion:
         st.markdown("""
         <div class="alert-warning">
             <strong>⚠ No hay datos disponibles</strong><br>
