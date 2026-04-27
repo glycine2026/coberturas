@@ -63,8 +63,16 @@ def parsear_datos_a3(df):
         dict: Datos estructurados
     """
     
-    # Aquí puedes agregar lógica de parseo específica
-    # según la estructura de tu Google Sheet
+    # Verificar si el DataFrame está vacío usando .empty
+    if df is None or df.empty:
+        return {
+            'dataframe': None,
+            'resumen': {
+                'filas': 0,
+                'columnas': 0,
+                'columnas_list': []
+            }
+        }
     
     return {
         'dataframe': df,

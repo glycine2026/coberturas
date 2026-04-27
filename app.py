@@ -256,7 +256,8 @@ with st.sidebar:
         with st.spinner("Obteniendo datos de Google Sheets..."):
             try:
                 datos_a3 = obtener_datos_a3()
-                if datos_a3:
+                # Validar correctamente si es un DataFrame válido
+                if datos_a3 is not None and not datos_a3.empty:
                     st.session_state.datos_a3 = datos_a3
                     st.success("✓ Datos A3 sincronizados")
                 else:
