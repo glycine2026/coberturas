@@ -1,187 +1,176 @@
 """
-Módulo de scraping de la Bolsa de Cereales
-Obtiene precios FOB de https://preciosfob.bolsadecereales.com
+Modulo de scraping de la Bolsa de Cereales.
+Obtiene precios FOB desde https://preciosfob.bolsadecereales.com
+
+Regla de datos: los FOB y subproductos se devuelven crudos, sin retenciones,
+sin fobbing y sin ningun descuento aplicado. La cascada FAS debe aplicar esos
+costos en app.py, nunca en el parser.
 """
 
+from __future__ import annotations
+
+import os
+import re
+import time
+from typing import Dict
+
+import streamlit as st
+from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from bs4 import BeautifulSoup
-import streamlit as st
-import time
-import os
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
-@st.cache_data(ttl=3600)  # Cache por 1 hora
-def obtener_datos_bolsa():
+
+def _parse_precio(texto: str) -> float:
+    """Parsea valores de la tabla FOB sin aplicar transformaciones financieras."""
+    s = str(texto or "").strip()
+    if not s or s.upper() in {"S/C", "SC", "N/A", "-", "--"}:
+        return 0.0
+    # Normaliza posibles formatos: 1.191,50 / 1191,50 / 1191.50 / 1191
+    s = re.sub(r"[^0-9,.-]", "", s)
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def _normalizar_mes(mes: str) -> str:
+    return " ".join(str(mes or "").strip().upper().split())
+
+
+@st.cache_data(ttl=3600)
+def obtener_datos_bolsa() -> Dict[str, Dict[str, float]]:
     """
-    Obtiene los datos de la Bolsa de Cereales usando Selenium
-    
+    Obtiene los datos de la Bolsa de Cereales usando Selenium.
+
     Returns:
-        dict: Diccionario con los precios por mes
-        Ejemplo: {
-            'ABR 2026': {'soja': 427, 'maiz': 215, 'trigo': 224, ...},
-            'MAY 2026': {'soja': 426, 'maiz': 215, 'trigo': 226, ...},
+        dict: posicion -> precios crudos.
+        Ejemplo:
+        {
+            'ABR 2026': {
+                'soja': 427.0,
+                'maiz': 215.0,
+                'trigo': 224.0,
+                'harina': 357.0,
+                'aceite': 1191.0,
+                'aceiteGirasol': 1303.0,
+            },
             ...
         }
     """
-    
-    print("🌐 Iniciando scraping de Bolsa de Cereales...")
-    
-    # Configurar Chrome en modo headless
+    print("Iniciando scraping de Bolsa de Cereales...")
+
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--disable-software-rasterizer')
-    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-    
-    # Detectar si estamos en Streamlit Cloud
-    if os.path.exists('/usr/bin/chromium'):
-        chrome_options.binary_location = '/usr/bin/chromium'
-    
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    )
+
+    if os.path.exists("/usr/bin/chromium"):
+        chrome_options.binary_location = "/usr/bin/chromium"
+
+    driver = None
     try:
-        # Iniciar Chrome
-        if os.path.exists('/usr/bin/chromedriver'):
-            # Streamlit Cloud
-            service = Service('/usr/bin/chromedriver')
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+        if os.path.exists("/usr/bin/chromedriver"):
+            service = Service("/usr/bin/chromedriver")
         else:
-            # Local con webdriver-manager
             from webdriver_manager.chrome import ChromeDriverManager
+
             service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-        
-        # Navegar a la página
+
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         url = "https://preciosfob.bolsadecereales.com"
         driver.get(url)
-        print(f"✓ Página cargada: {url}")
-        
-        # Esperar a que la tabla esté presente
-        wait = WebDriverWait(driver, 20)
-        table = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "tabla-cotizaciones")))
-        
-        # Dar tiempo extra para que cargue completamente
+        print(f"Pagina cargada: {url}")
+
+        wait = WebDriverWait(driver, 25)
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table")))
         time.sleep(3)
-        
-        print("✓ Tabla encontrada, extrayendo datos...")
-        
-        # Obtener el HTML
+
         html = driver.page_source
-        driver.quit()
-        
-        # Parsear con BeautifulSoup
-        soup = BeautifulSoup(html, 'html.parser')
-        table = soup.find('table', class_='tabla-cotizaciones')
-        
+        soup = BeautifulSoup(html, "html.parser")
+
+        table = soup.find("table", class_="tabla-cotizaciones") or soup.find("table")
         if not table:
-            raise Exception("No se encontró la tabla en el HTML")
-        
-        # Extraer datos
-        datos = {}
-        rows = table.find('tbody').find_all('tr')
-        
-        print(f"📊 Procesando {len(rows)} filas...")
-        
+            raise RuntimeError("No se encontro la tabla FOB en el HTML")
+
+        tbody = table.find("tbody") or table
+        rows = tbody.find_all("tr")
+        print(f"Procesando {len(rows)} filas FOB...")
+
+        datos: Dict[str, Dict[str, float]] = {}
         for row in rows:
-            cells = row.find_all('td')
-            
-            if len(cells) >= 7:
-                # Primera celda: mes
-                mes = cells[0].get_text(strip=True)
-                
-                # Buscar valores en los spans
-                valores = []
-                for cell in cells:
-                    span = cell.find('span')
-                    if span:
-                        text = span.get_text(strip=True)
-                        if text in ['s/c', 'S/C', 'N/A', '', '-']:
-                            valores.append(0)
-                        else:
-                            try:
-                                valores.append(float(text))
-                            except:
-                                valores.append(0)
-                
-                # Asignar valores (esperamos 6: soja, maíz, trigo, harina, aceite, aceite girasol)
-                if len(valores) >= 6:
-                    datos[mes] = {
-                        'soja': valores[0],
-                        'maiz': valores[1],
-                        'trigo': valores[2],
-                        'harina': valores[3],
-                        'aceite': valores[4],
-                        'aceiteGirasol': valores[5] if len(valores) > 5 else 0
-                    }
-        
+            cells = row.find_all(["td", "th"])
+            if len(cells) < 7:
+                continue
+
+            mes = _normalizar_mes(cells[0].get_text(" ", strip=True))
+            if not mes or "USD" in mes or "SOJA" in mes:
+                continue
+
+            # Columnas oficiales visibles:
+            # 1 Soja, 2 Maiz, 3 Trigo, 4 Harina soja, 5 Aceite soja, 6 Aceite girasol.
+            valores = [_parse_precio(cell.get_text(" ", strip=True)) for cell in cells[1:7]]
+            if len(valores) < 6:
+                continue
+
+            datos[mes] = {
+                "soja": valores[0],
+                "maiz": valores[1],
+                "trigo": valores[2],
+                "harina": valores[3],
+                "aceite": valores[4],
+                "aceiteGirasol": valores[5],
+            }
+
         if not datos:
-            raise Exception("No se pudieron extraer datos de la tabla")
-        
-        print(f"✓ Se extrajeron {len(datos)} meses correctamente")
-        
-        # Mostrar vista previa
-        for i, (mes, precios) in enumerate(datos.items()):
-            if i < 3:
-                print(f"  {mes}: Soja ${precios['soja']}, Maíz ${precios['maiz']}, Trigo ${precios['trigo']}")
-        
+            raise RuntimeError("No se pudieron extraer datos FOB de la tabla")
+
+        print(f"Se extrajeron {len(datos)} posiciones FOB")
         return datos
-        
-    except Exception as e:
-        print(f"✗ ERROR en scraping: {e}")
-        # En caso de error, usar datos mock
-        print("⚠️ Usando datos de respaldo (mock)")
+
+    except Exception as exc:
+        print(f"ERROR en scraping: {exc}")
+        print("Usando datos de respaldo completos hasta ABR 2027")
         return obtener_datos_bolsa_mock()
 
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
-def obtener_datos_bolsa_mock():
+
+def obtener_datos_bolsa_mock() -> Dict[str, Dict[str, float]]:
     """
-    Datos de prueba para testing sin scraping real
-    Útil para desarrollo y testing
+    Respaldo completo basado en la tabla visible de Bolsa de Cereales
+    del 23/04/2026. Mantiene todos los datos crudos, sin descuentos.
     """
     return {
-        'ABR 2026': {
-            'soja': 427.0,
-            'maiz': 215.0,
-            'trigo': 224.0,
-            'harina': 357.0,
-            'aceite': 1191.0,
-            'aceiteGirasol': 1303.0
-        },
-        'MAY 2026': {
-            'soja': 426.0,
-            'maiz': 215.0,
-            'trigo': 226.0,
-            'harina': 355.0,
-            'aceite': 1195.0,
-            'aceiteGirasol': 1298.0
-        },
-        'JUN 2026': {
-            'soja': 428.0,
-            'maiz': 213.0,
-            'trigo': 230.0,
-            'harina': 347.0,
-            'aceite': 1154.0,
-            'aceiteGirasol': 1298.0
-        },
-        'JUL 2026': {
-            'soja': 426.0,
-            'maiz': 211.0,
-            'trigo': 229.0,
-            'harina': 346.0,
-            'aceite': 1151.0,
-            'aceiteGirasol': 1303.0
-        },
-        'AGO 2026': {
-            'soja': 419.0,
-            'maiz': 215.0,
-            'trigo': 228.0,
-            'harina': 344.0,
-            'aceite': 1146.0,
-            'aceiteGirasol': 1303.0
-        }
+        "ABR 2026": {"soja": 427.0, "maiz": 215.0, "trigo": 224.0, "harina": 357.0, "aceite": 1191.0, "aceiteGirasol": 1303.0},
+        "MAY 2026": {"soja": 426.0, "maiz": 215.0, "trigo": 226.0, "harina": 355.0, "aceite": 1195.0, "aceiteGirasol": 1298.0},
+        "JUN 2026": {"soja": 428.0, "maiz": 213.0, "trigo": 230.0, "harina": 347.0, "aceite": 1154.0, "aceiteGirasol": 1298.0},
+        "JUL 2026": {"soja": 426.0, "maiz": 211.0, "trigo": 229.0, "harina": 346.0, "aceite": 1151.0, "aceiteGirasol": 1303.0},
+        "AGO 2026": {"soja": 419.0, "maiz": 215.0, "trigo": 228.0, "harina": 344.0, "aceite": 1146.0, "aceiteGirasol": 1303.0},
+        "SEP 2026": {"soja": 435.0, "maiz": 216.0, "trigo": 228.0, "harina": 342.0, "aceite": 1115.0, "aceiteGirasol": 1303.0},
+        "OCT 2026": {"soja": 447.0, "maiz": 218.0, "trigo": 228.0, "harina": 340.0, "aceite": 1122.0, "aceiteGirasol": 0.0},
+        "NOV 2026": {"soja": 443.0, "maiz": 220.0, "trigo": 227.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
+        "DIC 2026": {"soja": 444.0, "maiz": 221.0, "trigo": 234.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
+        "ENE 2027": {"soja": 436.0, "maiz": 223.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+        "FEB 2027": {"soja": 414.0, "maiz": 225.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+        "MAR 2027": {"soja": 406.0, "maiz": 215.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+        "ABR 2027": {"soja": 408.0, "maiz": 216.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
     }

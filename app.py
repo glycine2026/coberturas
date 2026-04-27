@@ -112,6 +112,26 @@ PRESETS = {
     ],
 }
 
+
+
+BOLSA_FALLBACK_FULL = {
+    # Snapshot de respaldo basado en la tabla FOB Bolsa de Cereales mostrada por la fuente.
+    # Solo se usa para completar posiciones faltantes cuando el scraper cae a datos parciales.
+    "ABR 2026": {"soja": 427.0, "maiz": 215.0, "trigo": 224.0, "harina": 357.0, "aceite": 1191.0, "aceiteGirasol": 1303.0},
+    "MAY 2026": {"soja": 426.0, "maiz": 215.0, "trigo": 226.0, "harina": 355.0, "aceite": 1195.0, "aceiteGirasol": 1298.0},
+    "JUN 2026": {"soja": 428.0, "maiz": 213.0, "trigo": 230.0, "harina": 347.0, "aceite": 1154.0, "aceiteGirasol": 1298.0},
+    "JUL 2026": {"soja": 426.0, "maiz": 211.0, "trigo": 229.0, "harina": 346.0, "aceite": 1151.0, "aceiteGirasol": 1303.0},
+    "AGO 2026": {"soja": 419.0, "maiz": 215.0, "trigo": 228.0, "harina": 344.0, "aceite": 1146.0, "aceiteGirasol": 1303.0},
+    "SEP 2026": {"soja": 435.0, "maiz": 216.0, "trigo": 228.0, "harina": 342.0, "aceite": 1115.0, "aceiteGirasol": 1303.0},
+    "OCT 2026": {"soja": 447.0, "maiz": 218.0, "trigo": 228.0, "harina": 340.0, "aceite": 1122.0, "aceiteGirasol": 0.0},
+    "NOV 2026": {"soja": 443.0, "maiz": 220.0, "trigo": 227.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
+    "DIC 2026": {"soja": 444.0, "maiz": 221.0, "trigo": 234.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
+    "ENE 2027": {"soja": 436.0, "maiz": 223.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+    "FEB 2027": {"soja": 414.0, "maiz": 225.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+    "MAR 2027": {"soja": 406.0, "maiz": 215.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+    "ABR 2027": {"soja": 408.0, "maiz": 216.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+}
+
 # -----------------------------------------------------------------------------
 # CSS - Clean Dashboard System
 # -----------------------------------------------------------------------------
@@ -431,15 +451,37 @@ label,
 }
 
 [data-testid="stNumberInput"] button {
-    background: #ffffff !important;
-    color: var(--text) !important;
-    border-color: var(--border-strong) !important;
+    background: #20232d !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-color: #20232d !important;
+}
+[data-testid="stNumberInput"] button * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stNumberInput"] button:hover {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
 }
 
-[data-testid="stSidebar"] .stButton > button,
-[data-testid="stSidebar"] button {
-    color: var(--text) !important;
+/* High-contrast rule: anything rendered as a primary/dark button must keep
+   white text/icons. This fixes + / - controls and sidebar dark actions. */
+.stButton > button[kind="primary"],
+.stButton > button[kind="primary"] *,
+[data-testid="baseButton-primary"],
+[data-testid="baseButton-primary"] *,
+button[kind="primary"],
+button[kind="primary"] * {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
+
+/* Sidebar button text is handled by button-specific rules below.
+   Do not force all sidebar buttons to dark text because primary/dark
+   buttons need white text for contrast. */
 
 .sim-title {
     display: flex;
@@ -615,6 +657,41 @@ label {
 }
 .coverage-note strong { color:var(--text); }
 
+
+/* Dark button contrast fixes: every label/icon inside a dark button must be white. */
+.stButton > button[kind="primary"],
+.stButton > button[kind="primary"] *,
+.stButton > button[kind="primary"] p,
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stButton > button *,
+[data-testid="stSidebar"] .stButton > button p {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+}
+
+[data-testid="stNumberInput"] button,
+[data-testid="stNumberInput"] button:hover,
+[data-testid="stNumberInput"] button:focus {
+    background: #1f2230 !important;
+    color: #ffffff !important;
+    border-color: #1f2230 !important;
+}
+[data-testid="stNumberInput"] button *,
+[data-testid="stNumberInput"] button svg,
+[data-testid="stNumberInput"] button svg *,
+[data-testid="stNumberInput"] button p,
+[data-testid="stNumberInput"] button span {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -759,9 +836,48 @@ def compact_pos_label(pos: str) -> str:
     return raw.title()
 
 
+
+def position_sort_key(pos: str) -> Tuple[int, int, str]:
+    """Stable chronological order for Bolsa positions such as ABR 2026."""
+    raw = canonical_pos_label(pos)
+    month_order = {"ENE": 1, "FEB": 2, "MAR": 3, "ABR": 4, "MAY": 5, "JUN": 6, "JUL": 7, "AGO": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DIC": 12, "DIS": 12}
+    m = re.match(r"^([A-Z]{3})\s+20(\d{2})$", raw)
+    if not m:
+        return (9999, 99, raw)
+    return (2000 + int(m.group(2)), month_order.get(m.group(1), 99), raw)
+
+
+def normalize_bolsa_data(raw_data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    """Normalize Bolsa data and complete missing future positions.
+
+    The parser output remains the source of truth when it provides a non-zero value.
+    The fallback snapshot is only used to complete missing rows/fields so the UI can
+    expose the full visible curve through ABR 2027 even when the scraper falls back
+    to a partial dataset.
+    """
+    normalized: Dict[str, Dict[str, float]] = {}
+    keys = ["soja", "maiz", "trigo", "harina", "aceite", "aceiteGirasol"]
+
+    for pos, row in (raw_data or {}).items():
+        canonical = canonical_pos_label(pos)
+        fallback_row = BOLSA_FALLBACK_FULL.get(canonical, {})
+        normalized[canonical] = {}
+        for key in keys:
+            value = parse_num((row or {}).get(key, 0.0))
+            # Fill parser misses without overriding valid scraped values.
+            if value <= 0 and safe_float(fallback_row.get(key), 0.0) > 0:
+                value = safe_float(fallback_row.get(key), 0.0)
+            normalized[canonical][key] = float(value)
+
+    for pos, row in BOLSA_FALLBACK_FULL.items():
+        normalized.setdefault(pos, deepcopy(row))
+
+    return dict(sorted(normalized.items(), key=lambda item: position_sort_key(item[0])))
+
+
 def get_positions_bolsa() -> List[str]:
     data = st.session_state.data_bolsa or {}
-    return list(data.keys())
+    return sorted(list(data.keys()), key=position_sort_key)
 
 
 def select_default_position(data: Dict[str, Dict[str, float]]) -> Optional[str]:
@@ -974,10 +1090,11 @@ def load_bolsa(force: bool = False) -> None:
     data = obtener_datos_bolsa()
     if not data:
         raise RuntimeError("No se obtuvieron datos desde Bolsa de Cereales")
-    st.session_state.data_bolsa = data
+    normalized = normalize_bolsa_data(data)
+    st.session_state.data_bolsa = normalized
     st.session_state.bolsa_loaded_at = datetime.now()
-    if not st.session_state.market_position or st.session_state.market_position not in data:
-        st.session_state.market_position = select_default_position(data)
+    if not st.session_state.market_position or st.session_state.market_position not in normalized:
+        st.session_state.market_position = select_default_position(normalized)
     st.session_state.data_loaded = True
 
 
@@ -1259,7 +1376,7 @@ def render_retention_scenario_simulator(
         with c_lbl:
             st.markdown('<div style="font-weight:800;color:var(--text);padding-top:8px;">Reducción de retenciones:</div>', unsafe_allow_html=True)
         with c_minus:
-            st.button("-", key="ret_reduction_minus", on_click=step_retention_reduction, args=(-5,), use_container_width=True)
+            st.button("-", key="ret_reduction_minus", type="primary", on_click=step_retention_reduction, args=(-5,), use_container_width=True)
         with c_slider:
             reduction_pct = st.slider(
                 "Reducción de retenciones",
@@ -1270,7 +1387,7 @@ def render_retention_scenario_simulator(
                 label_visibility="collapsed",
             )
         with c_plus:
-            st.button("+", key="ret_reduction_plus", on_click=step_retention_reduction, args=(5,), use_container_width=True)
+            st.button("+", key="ret_reduction_plus", type="primary", on_click=step_retention_reduction, args=(5,), use_container_width=True)
         with c_val:
             st.markdown(f'<div style="font-weight:900;color:var(--es-green-700);font-size:20px;padding-top:6px;text-align:right;">-{int(reduction_pct)}%</div>', unsafe_allow_html=True)
 
@@ -1354,7 +1471,7 @@ def render_sidebar() -> str:
         else:
             st.caption("A3: sin datos")
         st.divider()
-        if st.button("Limpiar builder", use_container_width=True):
+        if st.button("Limpiar builder", type="primary", use_container_width=True):
             reset_builder()
             st.rerun()
     return page
