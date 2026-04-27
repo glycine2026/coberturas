@@ -110,6 +110,14 @@ PRESETS = {
         {"dir": "buy", "type": "put", "ratio": 1.0, "strike_mult": 0.98, "prima": 6.0},
         {"dir": "sell", "type": "put", "ratio": 2.0, "strike_mult": 0.92, "prima": 3.0},
     ],
+    "Gaviota Invertida": [
+        {"dir": "buy", "type": "call", "ratio": 1.0, "strike_mult": 1.03, "prima": 5.0},
+        {"dir": "sell", "type": "call", "ratio": 1.0, "strike_mult": 1.15, "prima": 2.0},
+        {"dir": "sell", "type": "put", "ratio": 1.0, "strike_mult": 0.92, "prima": 3.0},
+    ],
+    "Lanzamiento Cubierto": [
+        {"dir": "sell", "type": "call", "ratio": 1.0, "strike_mult": 1.08, "prima": 4.0},
+    ],
 }
 
 
@@ -1228,6 +1236,28 @@ def compact_pos_label(pos: str) -> str:
     return raw.title()
 
 
+def a3_pos_sort_key(pos: str) -> Tuple[int, int, str]:
+    """Chronological sort for A3 position codes such as MAY26 or Bolsa labels."""
+    raw = canonical_a3_pos_code(pos)
+    month_order = {"ENE": 1, "FEB": 2, "MAR": 3, "ABR": 4, "MAY": 5, "JUN": 6, "JUL": 7, "AGO": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DIC": 12, "DIS": 12}
+    m = re.match(r"^([A-Z]{3})(\d{2})$", raw)
+    if not m:
+        return (9999, 99, raw)
+    return (2000 + int(m.group(2)), month_order.get(m.group(1), 99), raw)
+
+
+def canonical_a3_pos_code(pos: Any) -> str:
+    """Convert ABR 2026 / Abr 26 / ABR26 into the A3 code ABR26."""
+    raw = str(pos or "").strip().upper()
+    m = re.match(r"^([A-Z]{3})\s+20(\d{2})$", raw)
+    if m:
+        return f"{m.group(1)}{m.group(2)}"
+    m = re.match(r"^([A-Z]{3})\s*(\d{2})$", raw)
+    if m:
+        return f"{m.group(1)}{m.group(2)}"
+    return raw
+
+
 
 def position_sort_key(pos: str) -> Tuple[int, int, str]:
     """Stable chronological order for Bolsa positions such as ABR 2026."""
@@ -1351,15 +1381,25 @@ def find_col(columns: Iterable[str], *patterns: str, default: Optional[str] = No
 
 
 def parse_contrato(contrato: str) -> Optional[Dict[str, Any]]:
-    # Examples: SOJ.ROS/MAY26 or SOJ.ROS/MAY26 248 C
+    """Parse A3 contract names with the same tolerance as the HTML prototype.
+
+    Examples:
+    - SOJ.ROS/MAY26
+    - SOJ.ROS/MAY26 248 C
+    - GIR.ROS.P/DIS26
+
+    The previous Streamlit version only accepted positions shaped as exactly
+    three letters + two digits. The HTML accepted any alphanumeric position
+    after the slash, so valid A3 positions could disappear from the dropdown.
+    """
     text = str(contrato or "").strip().upper()
-    m = re.match(r"^([A-Z]{3})\.[A-Z.]+\/([A-Z]{3}\d{2})(?:\s+(\d+(?:[\.,]\d+)?)\s+([CP]))?", text)
+    m = re.match(r"^([A-Z]{3})\.[A-Z.]+\/([A-Z0-9]+)(?:\s+(\d+(?:[\.,]\d+)?)\s+([CP]))?\s*$", text)
     if not m:
         return None
     crop = CROP_CODE_MAP.get(m.group(1))
     if not crop:
         return None
-    result: Dict[str, Any] = {"crop": crop, "pos": m.group(2)}
+    result: Dict[str, Any] = {"crop": crop, "pos": canonical_a3_pos_code(m.group(2))}
     if m.group(3) and m.group(4):
         result["strike"] = parse_num(m.group(3))
         result["opt_type"] = "call" if m.group(4) == "C" else "put"
@@ -1411,7 +1451,7 @@ def parse_a3_data(df: pd.DataFrame) -> Dict[str, Any]:
             result["fecha_datos"] = str(row.get(fecha_col, "")).strip()
 
         crop = info["crop"]
-        pos = info["pos"]
+        pos = canonical_a3_pos_code(info["pos"])
         if "futuro" in tipo:
             result["futuros"].setdefault(crop, [])
             result["futuros"][crop].append(
@@ -1435,6 +1475,9 @@ def parse_a3_data(df: pd.DataFrame) -> Dict[str, Any]:
             )
             result["n_opciones"] += 1
 
+    for futs in result["futuros"].values():
+        futs.sort(key=lambda x: a3_pos_sort_key(x.get("pos", "")))
+
     for crop_opts in result["opciones"].values():
         for pos_opts in crop_opts.values():
             pos_opts["call"].sort(key=lambda x: x["strike"])
@@ -1442,20 +1485,83 @@ def parse_a3_data(df: pd.DataFrame) -> Dict[str, Any]:
     return result
 
 
-def get_a3_positions(crop: str) -> List[str]:
+def get_a3_positions(crop: str, include_bolsa_curve: bool = True) -> List[str]:
+    """Return the complete position universe for the Builder.
+
+    A3 is the source for futures/options/primas. Bolsa is added only as a
+    navigation fallback so the Builder can use the full FOB curve as baseline.
+    If a Bolsa-only position has no A3 options, strike remains editable and
+    premium autocomplete simply does nothing.
+    """
     data = st.session_state.data_a3 or {}
     positions = set()
+
     for fut in data.get("futuros", {}).get(crop, []):
-        positions.add(fut.get("pos"))
-    positions.update((data.get("opciones", {}).get(crop, {}) or {}).keys())
-    return sorted([p for p in positions if p])
+        pos = canonical_a3_pos_code(fut.get("pos"))
+        if pos:
+            positions.add(pos)
+
+    for pos in (data.get("opciones", {}).get(crop, {}) or {}).keys():
+        code = canonical_a3_pos_code(pos)
+        if code:
+            positions.add(code)
+
+    # Match the HTML workflow better: the position selector should not feel
+    # artificially truncated when A3 has options only for part of the curve.
+    # The full Bolsa curve remains read-only market data and does not alter A3.
+    if include_bolsa_curve:
+        for bolsa_pos in get_positions_bolsa():
+            code = canonical_a3_pos_code(bolsa_pos)
+            if code:
+                positions.add(code)
+
+    return sorted([p for p in positions if p], key=a3_pos_sort_key)
+
+
+def get_a3_position_summary(include_bolsa_curve: bool = False) -> pd.DataFrame:
+    """Audit table with A3 positions by crop and available option counts.
+
+    By default this shows A3-only positions, so the user can verify how the 25
+    futures and 119 options are distributed across crops. The builder selector
+    can additionally expose the full Bolsa curve as navigation fallback.
+    """
+    data = st.session_state.data_a3 or {}
+    rows: List[Dict[str, Any]] = []
+    for crop in CROP_LABELS.keys():
+        positions = get_a3_positions(crop, include_bolsa_curve=include_bolsa_curve)
+        for pos in positions:
+            fut = next(
+                (
+                    f
+                    for f in data.get("futuros", {}).get(crop, [])
+                    if canonical_a3_pos_code(f.get("pos")) == canonical_a3_pos_code(pos)
+                ),
+                None,
+            )
+            opts = data.get("opciones", {}).get(crop, {}).get(canonical_a3_pos_code(pos), {}) or {}
+            calls = len(opts.get("call", []))
+            puts = len(opts.get("put", []))
+            if fut is None and calls + puts == 0 and not include_bolsa_curve:
+                continue
+            rows.append(
+                {
+                    "Cultivo": CROP_LABELS.get(crop, crop),
+                    "Posicion": compact_pos_label(pos),
+                    "Futuro A3": safe_float(fut.get("precio"), 0.0) if fut else 0.0,
+                    "Calls": calls,
+                    "Puts": puts,
+                    "Opciones": calls + puts,
+                }
+            )
+    return pd.DataFrame(rows)
 
 
 def get_available_strikes(crop: str, position: Optional[str], opt_type: str) -> List[float]:
     if opt_type not in {"call", "put"} or not position:
         return []
     data = st.session_state.data_a3 or {}
-    opts = data.get("opciones", {}).get(crop, {}).get(position, {}).get(opt_type, [])
+    pos = canonical_a3_pos_code(position)
+    opts = data.get("opciones", {}).get(crop, {}).get(pos, {}).get(opt_type, [])
     return [float(o["strike"]) for o in opts if safe_float(o.get("strike"), 0) > 0]
 
 
@@ -1463,7 +1569,8 @@ def lookup_premium(crop: str, position: Optional[str], opt_type: str, strike: fl
     if opt_type not in {"call", "put"} or not position:
         return None
     data = st.session_state.data_a3 or {}
-    opts = data.get("opciones", {}).get(crop, {}).get(position, {}).get(opt_type, [])
+    pos = canonical_a3_pos_code(position)
+    opts = data.get("opciones", {}).get(crop, {}).get(pos, {}).get(opt_type, [])
     if not opts:
         return None
     for opt in opts:
@@ -2374,7 +2481,21 @@ def render_builder_panel() -> None:
                 st.rerun()
         with c8:
             a3 = st.session_state.data_a3 or {}
-            st.caption(f"A3 disponible: {a3.get('n_futuros', 0)} futuros / {a3.get('n_opciones', 0)} opciones. Strikes dinamicos si existen para la posicion.")
+            a3_positions_count = len(get_a3_position_summary(include_bolsa_curve=False)) if a3 else 0
+            full_positions_count = len(get_a3_positions(st.session_state.builder_crop)) if a3 else 0
+            st.caption(
+                f"A3 disponible: {a3.get('n_futuros', 0)} futuros / {a3.get('n_opciones', 0)} opciones / "
+                f"{a3_positions_count} posiciones A3 unicas. "
+                f"Para {CROP_LABELS.get(st.session_state.builder_crop, st.session_state.builder_crop)} se muestran {full_positions_count} posiciones en orden cronologico. "
+                "Las primas/strikes solo se autocompletan cuando A3 tiene datos para esa posicion."
+            )
+
+    with st.expander("Ver posiciones y opciones A3 cargadas por cultivo", expanded=False):
+        summary_df = get_a3_position_summary(include_bolsa_curve=False)
+        if summary_df.empty:
+            st.info("No hay posiciones A3 cargadas.")
+        else:
+            st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
     left, right = st.columns([.95, 1.35], gap="large")
     with left:
@@ -2591,6 +2712,10 @@ def render_audit_log() -> None:
                 "futuros": a3.get("n_futuros", 0),
                 "opciones": a3.get("n_opciones", 0),
                 "fecha_datos": a3.get("fecha_datos", ""),
+                "posiciones_builder_por_cultivo": {
+                    CROP_LABELS[crop]: [compact_pos_label(p) for p in get_a3_positions(crop)]
+                    for crop in CROP_LABELS
+                },
                 "builder_strategies": len(st.session_state.builder_strategies),
             }
         )
