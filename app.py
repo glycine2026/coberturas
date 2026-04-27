@@ -18,6 +18,12 @@ from calculadora import (
     calcular_exportacion_grano
 )
 from google_sheets import obtener_datos_a3
+from estrategias_ui import (
+    render_payoff_chart,
+    render_preset_selector,
+    render_strategy_summary
+)
+from estrategias_engine import Strategy
 
 # ═══════════════════════════════════════════════════════════
 # CONFIGURACIÓN DE PÁGINA
@@ -334,17 +340,146 @@ tab1, tab2, tab3 = st.tabs([
 # ──────────────────────────────────────────────────────────
 
 with tab1:
-    st.header("Estrategias de Cobertura")
+    st.header("📈 Estrategias de Cobertura")
     
-    if st.session_state.datos_bolsa is None or len(st.session_state.datos_bolsa) == 0:
+    if st.session_state.datos_bolsa is None or len(st.session_state.datos_bolsa) == 0 or not posicion:
         st.markdown("""
         <div class="alert-warning">
             <strong>⚠ No hay datos disponibles</strong><br>
-            Presiona el botón "🌾 Actualizar FOB" en el sidebar para obtener los precios de la Bolsa de Cereales.
+            Presiona "🌾 Actualizar FOB" en el sidebar para cargar los precios de la Bolsa.
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("🚧 Esta sección está en desarrollo. Próximamente incluirá el simulador completo de estrategias de cobertura.")
+        # Obtener precio FOB actual
+        precios = st.session_state.datos_bolsa[posicion]
+        cultivo_lower = cultivo.lower()
+        
+        fob_keys = {
+            'soja': 'soja',
+            'maíz': 'maiz',
+            'trigo': 'trigo',
+            'girasol': 'girasol'
+        }
+        
+        fob_precio = precios.get(fob_keys.get(cultivo_lower, 'soja'), 427)
+        
+        # Inicializar estrategias en session_state
+        if 'estrategias_activas' not in st.session_state:
+            st.session_state.estrategias_activas = []
+        
+        # Layout principal
+        col_selector, col_grafico = st.columns([1, 2])
+        
+        with col_selector:
+            # Selector de estrategias predefinidas
+            selected = render_preset_selector(fob_precio)
+            if selected:
+                # Agregar a estrategias activas si no existe
+                if selected.name not in [s.name for s in st.session_state.estrategias_activas]:
+                    st.session_state.estrategias_activas.append(selected)
+                    st.rerun()
+            
+            # Mostrar estrategias activas
+            if st.session_state.estrategias_activas:
+                st.divider()
+                st.subheader("📊 Activas")
+                
+                for idx, strat in enumerate(st.session_state.estrategias_activas):
+                    col_name, col_remove = st.columns([4, 1])
+                    with col_name:
+                        cost = strat.total_cost()
+                        cost_icon = "💰" if cost > 0 else "💸" if cost < 0 else "⚖️"
+                        st.write(f"{cost_icon} **{strat.name}**")
+                        st.caption(f"Costo: ${abs(cost):.2f}")
+                    with col_remove:
+                        if st.button("🗑️", key=f"remove_{idx}"):
+                            st.session_state.estrategias_activas.pop(idx)
+                            st.rerun()
+                
+                # Botón para limpiar todas
+                if st.button("🗑️ Limpiar Todas", use_container_width=True):
+                    st.session_state.estrategias_activas = []
+                    st.rerun()
+        
+        with col_grafico:
+            if st.session_state.estrategias_activas:
+                # Mostrar precio de referencia
+                st.info(f"📍 **{cultivo} - {posicion}:** FOB ${fob_precio:.2f}/tn")
+                
+                # Renderizar gráfico de payoff
+                try:
+                    fig = render_payoff_chart(
+                        st.session_state.estrategias_activas,
+                        fob_precio,
+                        width=750,
+                        height=500
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error al generar gráfico: {str(e)}")
+                
+                # Análisis de escenarios
+                st.subheader("🎯 Análisis de Escenarios")
+                
+                # Escenarios: -20%, -10%, actual, +10%, +20%
+                escenarios = [
+                    fob_precio * 0.80,
+                    fob_precio * 0.90,
+                    fob_precio,
+                    fob_precio * 1.10,
+                    fob_precio * 1.20
+                ]
+                
+                # Tabla comparativa
+                data = []
+                for precio in escenarios:
+                    row = {'Escenario': f'${precio:.0f}'}
+                    variacion = ((precio / fob_precio) - 1) * 100
+                    row['Variación'] = f'{variacion:+.0f}%'
+                    
+                    for strat in st.session_state.estrategias_activas:
+                        pnl = strat.pnl(precio)
+                        row[strat.name] = pnl
+                    
+                    data.append(row)
+                
+                df = pd.DataFrame(data)
+                
+                # Formatear y mostrar
+                def color_pnl(val):
+                    if isinstance(val, (int, float)):
+                        color = '#1a854a' if val > 0 else '#c43030' if val < 0 else 'gray'
+                        return f'color: {color}; font-weight: 600'
+                    return ''
+                
+                st.dataframe(
+                    df.style.format({
+                        col: '${:.2f}' 
+                        for col in df.columns 
+                        if col not in ['Escenario', 'Variación']
+                    }).applymap(
+                        color_pnl,
+                        subset=[col for col in df.columns if col not in ['Escenario', 'Variación']]
+                    ),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Resumen de cada estrategia
+                st.divider()
+                for strat in st.session_state.estrategias_activas:
+                    with st.expander(f"📊 {strat.name} - Métricas Detalladas"):
+                        render_strategy_summary(strat, fob_precio)
+            else:
+                st.markdown("""
+                <div style="text-align: center; padding: 4rem 2rem;">
+                    <h3 style="color: #c9a961;">👈 Seleccioná estrategias para comenzar</h3>
+                    <p style="color: #7e8574; margin-top: 1rem;">
+                        Elegí una o más estrategias predefinidas del menú lateral.<br>
+                        Podrás comparar gráficamente su performance en diferentes escenarios.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────────────────
 # TAB 2: MANUAL TEÓRICO

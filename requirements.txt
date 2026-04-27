@@ -5,3 +5,5 @@ webdriver-manager
 beautifulsoup4
 requests
 lxml
+numpy
+plotly
