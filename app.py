@@ -1008,6 +1008,81 @@ button[kind="primary"] * {
     opacity: 1 !important;
 }
 
+
+.coverage-scenario-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+}
+.coverage-scenario-table th {
+    background: var(--es-green-100);
+    color: var(--es-green-900) !important;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--es-green-700);
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.coverage-scenario-table td {
+    color: var(--text) !important;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+}
+.coverage-scenario-table tr:last-child td {
+    border-bottom: 0;
+}
+.coverage-scenario-table tr.is-spot td {
+    background: var(--es-green-100);
+}
+.coverage-scenario-table .scenario-name {
+    font-weight: 750;
+    font-variant-numeric: normal;
+}
+.coverage-scenario-table .money-cell {
+    white-space: nowrap;
+    font-weight: 760;
+}
+.coverage-scenario-table .strategy-cell {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    white-space: nowrap;
+}
+.coverage-scenario-table .strategy-value {
+    font-weight: 850;
+    color: var(--text) !important;
+}
+.coverage-scenario-table .delta-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 7px;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.4;
+}
+.coverage-scenario-table .delta-positive {
+    color: var(--success) !important;
+    background: #e4f7ec;
+}
+.coverage-scenario-table .delta-negative {
+    color: var(--danger) !important;
+    background: #fde8e8;
+}
+.coverage-scenario-table .delta-neutral {
+    color: var(--text-muted) !important;
+    background: var(--surface-muted);
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -1050,6 +1125,7 @@ def init_state() -> None:
         ],
         "ret_params": deepcopy(DEFAULT_PARAMS),
         "ret_reduction_pct": 25,
+        "preset_reset_nonce": 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -2235,6 +2311,10 @@ def render_builder_panel() -> None:
     if not gate_if_needed():
         return
 
+    # El selector de plantillas usa una key dinamica.
+    # Esto evita el error de Streamlit por intentar modificar manualmente
+    # una key que ya fue usada por st.selectbox durante la misma ejecucion.
+
     render_section_header(
         "Builder de Coberturas",
         "Panel independiente A3. Usa el FOB seleccionado en Mercado como linea base, sin modificar los datos de Bolsa.",
@@ -2272,13 +2352,14 @@ def render_builder_panel() -> None:
         with c3:
             st.metric("Linea base FOB", fmt_num(spot), help="Viene del Panel de Mercado (Bolsa).")
         with c4:
-            preset = st.selectbox("Plantilla", ["Seleccionar..."] + list(PRESETS.keys()), key="preset_select")
+            preset_key = f"preset_select_{st.session_state.preset_reset_nonce}"
+            preset = st.selectbox("Plantilla", ["Seleccionar..."] + list(PRESETS.keys()), key=preset_key)
         with c5:
             st.write("")
             st.write("")
             if st.button("Cargar plantilla", use_container_width=True, disabled=preset == "Seleccionar..."):
                 load_preset(preset, spot)
-                st.session_state.preset_select = "Seleccionar..."
+                st.session_state.preset_reset_nonce += 1
                 st.rerun()
 
         c6, c7, c8 = st.columns([1, 1, 3])
@@ -2394,18 +2475,56 @@ def render_strategy_chart(spot: float, strategies: List[Dict[str, Any]]) -> None
 
 
 def render_scenario_table(spot: float, strategies: List[Dict[str, Any]]) -> None:
+    """Render final scenario comparison with colored hedge deltas.
+
+    Each strategy cell shows the final net sale price and, next to it, the
+    difference versus the unhedged physical price for the same scenario.
+    Positive deltas are green; negative deltas are red; neutral deltas are gray.
+    """
     st.markdown("#### Analisis de escenarios")
     scenarios = collect_scenario_prices(spot, strategies)
-    rows = []
-    for name, price in scenarios:
-        row: Dict[str, Any] = {"Escenario": name, "Mercado": price, "Sin cobertura": price}
+
+    headers = ["Escenario", "Mercado", "Sin cobertura"] + [
+        str(strat.get("name") or f"Estrategia {idx + 1}")
+        for idx, strat in enumerate(strategies)
+    ]
+
+    html_parts: List[str] = ['<table class="coverage-scenario-table"><thead><tr>']
+    for header in headers:
+        html_parts.append(f"<th>{html_escape(header)}</th>")
+    html_parts.append("</tr></thead><tbody>")
+
+    for scenario_name, price in scenarios:
+        is_spot = abs(price - spot) <= max(0.5, abs(spot) * 0.001)
+        row_class = ' class="is-spot"' if is_spot else ""
+        html_parts.append(f"<tr{row_class}>")
+        html_parts.append(f'<td class="scenario-name">{html_escape(scenario_name)}</td>')
+        html_parts.append(f'<td class="money-cell">u$s {fmt_num(price, 1)}</td>')
+        html_parts.append(f'<td class="money-cell">u$s {fmt_num(price, 1)}</td>')
+
         for strat in strategies:
             value = calc_net_price(strat, price)
-            row[strat.get("name", "Estrategia")] = value
-        rows.append(row)
-    df = pd.DataFrame(rows)
-    fmt_cols = {col: "${:,.2f}" for col in df.columns if col not in {"Escenario"}}
-    st.dataframe(df.style.format(fmt_cols), use_container_width=True, hide_index=True)
+            diff = value - price
+            if diff > 0.005:
+                delta_class = "delta-positive"
+            elif diff < -0.005:
+                delta_class = "delta-negative"
+            else:
+                delta_class = "delta-neutral"
+
+            delta_text = f"+u$s {fmt_num(abs(diff), 1)}" if diff >= 0 else f"-u$s {fmt_num(abs(diff), 1)}"
+            html_parts.append(
+                '<td>'
+                '<span class="strategy-cell">'
+                f'<span class="strategy-value">u$s {fmt_num(value, 1)}</span>'
+                f'<span class="delta-pill {delta_class}">({delta_text})</span>'
+                '</span>'
+                '</td>'
+            )
+        html_parts.append("</tr>")
+
+    html_parts.append("</tbody></table>")
+    st.markdown("".join(html_parts), unsafe_allow_html=True)
 
 
 def render_dominance(spot: float, strategies: List[Dict[str, Any]]) -> None:
