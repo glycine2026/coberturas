@@ -1556,6 +1556,47 @@ def get_a3_position_summary(include_bolsa_curve: bool = False) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+
+
+def get_a3_future_price(crop: str, position: Optional[str]) -> Optional[float]:
+    """Return the A3 future price for the selected crop/position, when available.
+
+    In the original HTML builder the chart base is the MATBA/A3 future/spot
+    (for example Maiz Mayo 26 around 189), not the Bolsa FOB soybean value
+    used by the FAS panel (for example 427).
+    """
+    if not crop or not position:
+        return None
+    data = st.session_state.data_a3 or {}
+    pos_code = canonical_a3_pos_code(position)
+    for fut in data.get("futuros", {}).get(crop, []):
+        if canonical_a3_pos_code(fut.get("pos")) == pos_code:
+            price = safe_float(fut.get("precio"), 0.0)
+            if price > 0:
+                return price
+    return None
+
+
+def get_builder_base_price(crop: Optional[str] = None, position: Optional[str] = None) -> Tuple[float, str]:
+    """Return the builder spot/base price and a source label.
+
+    Builder behavior now matches the HTML: A3 future price is the first source
+    for presets, payoff chart and scenarios. Bolsa FOB remains isolated in
+    Panel Mercado/FAS and is used only as fallback when A3 has no future for
+    the selected crop/position.
+    """
+    crop = crop or st.session_state.builder_crop
+    position = position or st.session_state.builder_position
+    a3_price = get_a3_future_price(crop, position)
+    if a3_price is not None:
+        return a3_price, f"A3 futuro {CROP_LABELS.get(crop, crop)} {compact_pos_label(position)}"
+
+    fob_price = get_selected_fob(st.session_state.market_crop, st.session_state.market_position)
+    if fob_price > 0:
+        return fob_price, f"Bolsa FOB {CROP_LABELS.get(st.session_state.market_crop, st.session_state.market_crop)} {compact_pos_label(st.session_state.market_position)}"
+
+    return safe_float(st.session_state.get("last_market_fob"), 400.0), "Fallback"
+
 def get_available_strikes(crop: str, position: Optional[str], opt_type: str) -> List[float]:
     if opt_type not in {"call", "put"} or not position:
         return []
@@ -2225,7 +2266,7 @@ def add_strategy(name: str = "Nueva Estrategia", legs: Optional[List[Dict[str, A
     st.session_state.next_strategy_id += 1
     color = colors[(strat_id - 1) % len(colors)]
     if legs is None:
-        legs = [new_leg(get_selected_fob())]
+        legs = [new_leg(get_builder_base_price()[0])]
     st.session_state.builder_strategies.append({"id": strat_id, "name": name, "color": color, "legs": legs})
 
 
@@ -2424,11 +2465,8 @@ def render_builder_panel() -> None:
 
     render_section_header(
         "Builder de Coberturas",
-        "Panel independiente A3. Usa el FOB seleccionado en Mercado como linea base, sin modificar los datos de Bolsa.",
+        "Panel independiente A3. Usa el futuro A3 seleccionado como spot/base del builder; Bolsa FOB queda para el Panel FAS.",
     )
-    spot = get_selected_fob(st.session_state.market_crop, st.session_state.market_position)
-    if spot <= 0:
-        spot = safe_float(st.session_state.get("last_market_fob"), 400.0)
 
     with st.container(border=True):
         c1, c2, c3, c4, c5 = st.columns([1.15, 1.25, 1.3, 1.2, 1.2], gap="medium")
@@ -2456,8 +2494,11 @@ def render_builder_panel() -> None:
             else:
                 st.selectbox("Posicion A3", ["Sin datos A3"], disabled=True)
                 st.session_state.builder_position = None
+
+        spot, spot_source = get_builder_base_price(st.session_state.builder_crop, st.session_state.builder_position)
+
         with c3:
-            st.metric("Linea base FOB", fmt_num(spot), help="Viene del Panel de Mercado (Bolsa).")
+            st.metric("Spot base Builder", fmt_num(spot), help=f"Fuente: {spot_source}. El FOB Bolsa/FAS se mantiene separado.")
         with c4:
             preset_key = f"preset_select_{st.session_state.preset_reset_nonce}"
             preset = st.selectbox("Plantilla", ["Seleccionar..."] + list(PRESETS.keys()), key=preset_key)
@@ -2468,6 +2509,12 @@ def render_builder_panel() -> None:
                 load_preset(preset, spot)
                 st.session_state.preset_reset_nonce += 1
                 st.rerun()
+
+        st.caption(
+            f"Base actual del builder: {spot_source}. "
+            f"Referencia FAS/Bolsa separada: {CROP_LABELS.get(st.session_state.market_crop, st.session_state.market_crop)} "
+            f"{compact_pos_label(st.session_state.market_position)} = {fmt_num(get_selected_fob(st.session_state.market_crop, st.session_state.market_position))}."
+        )
 
         c6, c7, c8 = st.columns([1, 1, 3])
         with c6:
@@ -2511,10 +2558,9 @@ def render_builder_panel() -> None:
         render_scenario_table(spot, st.session_state.builder_strategies)
         render_dominance(spot, st.session_state.builder_strategies)
 
-
 def render_strategy_chart(spot: float, strategies: List[Dict[str, Any]]) -> None:
     if spot <= 0:
-        st.warning("No hay FOB base para graficar.")
+        st.warning("No hay precio base para graficar.")
         return
     x = np.linspace(spot * 0.70, spot * 1.30, 220)
     fig = go.Figure()
@@ -2544,7 +2590,7 @@ def render_strategy_chart(spot: float, strategies: List[Dict[str, Any]]) -> None
         x=spot,
         line_dash="dot",
         line_color="#c8a44a",
-        annotation_text=f"FOB {spot:.0f}",
+        annotation_text=f"Base {spot:.0f}",
         annotation_font_color="#1c2118",
         annotation_font_size=12,
         annotation_bgcolor="rgba(255,255,255,.88)",
