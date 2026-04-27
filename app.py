@@ -417,6 +417,29 @@ html, body, [class*="css"] {
     padding: 12px 14px;
     box-shadow: var(--shadow);
 }
+[data-testid="stMetric"] *,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricDelta"],
+[data-testid="stMetricDelta"] * {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+/* Plotly contrast: Streamlit Cloud can inject a dark/transparent chart theme.
+   Keep all chart labels, legends and axis texts readable over white plots. */
+.js-plotly-plot .plotly text,
+.js-plotly-plot .gtitle,
+.js-plotly-plot .xtitle,
+.js-plotly-plot .ytitle,
+.js-plotly-plot .legendtext {
+    fill: var(--text) !important;
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
 
 /* Form readability: Streamlit Cloud can inherit dark-mode input styles.
    Force all labels, select values, input values and helper text to a dark
@@ -690,6 +713,299 @@ label {
     fill: #ffffff !important;
     stroke: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Final contrast guard for dark widgets and sidebar actions. */
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stButton > button:hover,
+[data-testid="stSidebar"] .stButton > button:disabled {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stSidebar"] .stButton > button *,
+[data-testid="stSidebar"] .stButton > button p,
+[data-testid="stSidebar"] .stButton > button span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stNumberInput"] button,
+[data-testid="stNumberInput"] button:hover,
+[data-testid="stNumberInput"] button:focus,
+[data-testid="stNumberInput"] button:disabled {
+    background: #1f2230 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-color: #1f2230 !important;
+    opacity: 1 !important;
+}
+[data-testid="stNumberInput"] button *,
+[data-testid="stNumberInput"] button svg,
+[data-testid="stNumberInput"] button svg *,
+[data-testid="stNumberInput"] button p,
+[data-testid="stNumberInput"] button span {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+
+/* FINAL contrast pass for Builder + charts area.
+   Streamlit Cloud may apply a dark BaseWeb theme to secondary buttons and
+   metric internals; these rules force a readable dashboard contrast. */
+[data-testid="stMetric"],
+[data-testid="stMetric"] * {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
+}
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] * {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+.stButton > button:not([kind="primary"]):not(:disabled) {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    border-color: var(--border-strong) !important;
+}
+.stButton > button:not([kind="primary"]):not(:disabled) *,
+.stButton > button:not([kind="primary"]):not(:disabled) p,
+.stButton > button:not([kind="primary"]):not(:disabled) span {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+.stButton > button[kind="primary"],
+.stButton > button[kind="primary"] *,
+.stButton > button[kind="primary"] p,
+.stButton > button[kind="primary"] span,
+.stButton > button[kind="primary"] svg,
+.stButton > button[kind="primary"] svg * {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.stButton > button:disabled,
+.stButton > button[disabled] {
+    background: #eef0e8 !important;
+    color: #68705f !important;
+    -webkit-text-fill-color: #68705f !important;
+    border-color: var(--border) !important;
+    opacity: 1 !important;
+}
+.stButton > button:disabled *,
+.stButton > button[disabled] *,
+.stButton > button:disabled p,
+.stButton > button[disabled] p {
+    color: #68705f !important;
+    -webkit-text-fill-color: #68705f !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stNumberInput"] button,
+[data-testid="stNumberInput"] button:hover,
+[data-testid="stNumberInput"] button:focus {
+    background: #1f2230 !important;
+    border-color: #1f2230 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stNumberInput"] button *,
+[data-testid="stNumberInput"] button p,
+[data-testid="stNumberInput"] button span,
+[data-testid="stNumberInput"] button svg,
+[data-testid="stNumberInput"] button svg * {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   FINAL CONTRAST PATCH
+   Streamlit can inherit dark theme colors for widget internals. These
+   overrides keep the dashboard readable: dark/primary buttons always
+   render white text/icons, while metrics and Plotly labels remain dark.
+------------------------------------------------------------------ */
+.stButton > button,
+.stButton > button:disabled,
+.stButton > button[disabled],
+[data-testid="baseButton-primary"],
+[data-testid="baseButton-secondary"] {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+.stButton > button *,
+.stButton > button:disabled *,
+.stButton > button[disabled] *,
+.stButton > button p,
+.stButton > button span,
+.stButton > button svg,
+.stButton > button svg *,
+[data-testid="baseButton-primary"] *,
+[data-testid="baseButton-secondary"] * {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stButton > button:hover,
+.stButton > button:focus {
+    background: var(--es-green-800) !important;
+    border-color: var(--es-green-800) !important;
+    color: #ffffff !important;
+}
+
+/* Number input +/- controls are dark by design, so force icon contrast. */
+[data-testid="stNumberInput"] button,
+[data-testid="stNumberInput"] button:disabled,
+[data-testid="stNumberInput"] button[disabled] {
+    background: #1f2230 !important;
+    border-color: #1f2230 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+[data-testid="stNumberInput"] button *,
+[data-testid="stNumberInput"] button svg,
+[data-testid="stNumberInput"] button svg * {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Metrics such as Linea base FOB and Costo neto must remain legible on light cards. */
+[data-testid="stMetric"],
+[data-testid="stMetric"] *,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricDelta"],
+[data-testid="stMetricDelta"] * {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
+}
+[data-testid="stMetricValue"] {
+    color: var(--es-green-700) !important;
+    -webkit-text-fill-color: var(--es-green-700) !important;
+    font-weight: 900 !important;
+}
+
+/* Plotly toolbar and labels: keep readable on white chart background. */
+.js-plotly-plot .plotly .gtitle,
+.js-plotly-plot .plotly .xtitle,
+.js-plotly-plot .plotly .ytitle,
+.js-plotly-plot .plotly .legend text,
+.js-plotly-plot .plotly .xtick text,
+.js-plotly-plot .plotly .ytick text,
+.js-plotly-plot .plotly .annotation-text,
+.js-plotly-plot .plotly text {
+    fill: var(--text) !important;
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+/* Definitive Streamlit button contrast and readability overrides. Placed last
+   so they win over Streamlit Cloud theme defaults. */
+.stButton > button,
+.stButton > button:focus:not(:active) {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    border: 1px solid var(--border-strong) !important;
+    opacity: 1 !important;
+}
+.stButton > button *,
+.stButton > button p,
+.stButton > button span {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+    opacity: 1 !important;
+}
+.stButton > button:hover:not(:disabled) {
+    background: var(--es-green-100) !important;
+    color: var(--es-green-900) !important;
+    -webkit-text-fill-color: var(--es-green-900) !important;
+    border-color: var(--es-green-700) !important;
+}
+.stButton > button[kind="primary"],
+.stButton > button[kind="primary"]:hover:not(:disabled),
+[data-testid="baseButton-primary"],
+[data-testid="baseButton-primary"]:hover:not(:disabled),
+button[kind="primary"],
+button[kind="primary"]:hover:not(:disabled) {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stButton > button[kind="primary"] *,
+[data-testid="baseButton-primary"] *,
+button[kind="primary"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stButton > button:disabled,
+.stButton > button:disabled:hover {
+    background: #1f2230 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-color: #1f2230 !important;
+    opacity: .80 !important;
+}
+.stButton > button:disabled *,
+.stButton > button:disabled p,
+.stButton > button:disabled span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stButton > button:hover,
+[data-testid="stSidebar"] .stButton > button:disabled {
+    background: var(--es-green-700) !important;
+    border-color: var(--es-green-700) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stSidebar"] .stButton > button *,
+[data-testid="stSidebar"] .stButton > button p,
+[data-testid="stSidebar"] .stButton > button span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+[data-testid="stMetric"],
+[data-testid="stMetric"] div,
+[data-testid="stMetric"] p,
+[data-testid="stMetric"] span,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"] {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    opacity: 1 !important;
 }
 
 </style>
@@ -1897,11 +2213,11 @@ def render_strategy_card(strategy: Dict[str, Any], spot: float) -> None:
 
         c1, c2, c3 = st.columns([1, 1, 4])
         with c1:
-            if st.button("+ Pata", key=f"add_leg_{sid}", use_container_width=True):
+            if st.button("+ Pata", key=f"add_leg_{sid}", type="primary", use_container_width=True):
                 strategy["legs"].append(new_leg(spot))
                 st.rerun()
         with c2:
-            if st.button("Prima A3", key=f"premium_one_{sid}", use_container_width=True):
+            if st.button("Prima A3", key=f"premium_one_{sid}", type="primary", use_container_width=True):
                 updated = 0
                 for leg in strategy.get("legs", []):
                     premium = lookup_premium(st.session_state.builder_crop, st.session_state.builder_position, leg.get("type"), safe_float(leg.get("strike")))
@@ -1971,7 +2287,7 @@ def render_builder_panel() -> None:
                 add_strategy("Nueva Estrategia", [new_leg(spot)])
                 st.rerun()
         with c7:
-            if st.button("Actualizar primas", use_container_width=True):
+            if st.button("Actualizar primas", type="primary", use_container_width=True):
                 updated = refresh_all_premiums()
                 st.success(f"{updated} primas actualizadas desde A3")
                 st.rerun()
@@ -2005,8 +2321,8 @@ def render_strategy_chart(spot: float, strategies: List[Dict[str, Any]]) -> None
             x=x,
             y=x,
             mode="lines",
-            name="Fisico sin cobertura",
-            line=dict(color="#9ca3af", width=2, dash="dash"),
+            name="Linea base - Fisico sin cobertura",
+            line=dict(color="#111827", width=2.6, dash="dash"),
             hovertemplate="Precio: %{x:.1f}<br>Neto: %{y:.1f}<extra></extra>",
         )
     )
@@ -2022,21 +2338,58 @@ def render_strategy_chart(spot: float, strategies: List[Dict[str, Any]]) -> None
                 hovertemplate="Precio: %{x:.1f}<br>Neto: %{y:.1f}<extra></extra>",
             )
         )
-    fig.add_vline(x=spot, line_dash="dot", line_color="#c8a44a", annotation_text=f"FOB {spot:.0f}")
+    fig.add_vline(
+        x=spot,
+        line_dash="dot",
+        line_color="#c8a44a",
+        annotation_text=f"FOB {spot:.0f}",
+        annotation_font_color="#1c2118",
+        annotation_font_size=12,
+        annotation_bgcolor="rgba(255,255,255,.88)",
+    )
     fig.update_layout(
+        template="plotly_white",
         height=460,
-        margin=dict(l=10, r=10, t=35, b=10),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        title="Precio neto de venta a vencimiento",
+        margin=dict(l=12, r=12, t=54, b=42),
+        plot_bgcolor="#ffffff",
+        paper_bgcolor="#ffffff",
+        title=dict(
+            text="Precio neto de venta a vencimiento",
+            font=dict(family="Inter, Arial", color="#111827", size=16),
+            x=0.0,
+            xanchor="left",
+        ),
         xaxis_title="Precio terminal (USD/tn)",
         yaxis_title="Precio neto de venta (USD/tn)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        font=dict(family="Inter, Arial", color="#1c2118"),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            font=dict(family="Inter, Arial", color="#111827", size=12),
+            bgcolor="rgba(255,255,255,.92)",
+        ),
+        font=dict(family="Inter, Arial", color="#111827", size=12),
         hovermode="x unified",
+        hoverlabel=dict(bgcolor="#ffffff", bordercolor="#c8cbbe", font=dict(color="#111827")),
     )
-    fig.update_xaxes(gridcolor="#eef0e8")
-    fig.update_yaxes(gridcolor="#eef0e8")
+    fig.update_xaxes(
+        title_font=dict(color="#111827", size=12),
+        tickfont=dict(color="#111827", size=11),
+        color="#111827",
+        linecolor="#c8cbbe",
+        gridcolor="#e5e7df",
+        zerolinecolor="#e5e7df",
+    )
+    fig.update_yaxes(
+        title_font=dict(color="#111827", size=12),
+        tickfont=dict(color="#111827", size=11),
+        color="#111827",
+        linecolor="#c8cbbe",
+        gridcolor="#e5e7df",
+        zerolinecolor="#e5e7df",
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 
