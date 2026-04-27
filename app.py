@@ -398,10 +398,223 @@ html, body, [class*="css"] {
     box-shadow: var(--shadow);
 }
 
+/* Form readability: Streamlit Cloud can inherit dark-mode input styles.
+   Force all labels, select values, input values and helper text to a dark
+   accessible color while keeping the dashboard background light. */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] *,
+.stSelectbox label,
+.stNumberInput label,
+.stTextInput label,
+.stSlider label,
+.stRadio label,
+label,
+[data-baseweb="select"] * {
+    color: var(--text) !important;
+}
+
+.stNumberInput input,
+.stTextInput input,
+.stTextArea textarea,
+[data-baseweb="input"] input {
+    color: var(--text) !important;
+    -webkit-text-fill-color: var(--text) !important;
+    background: #ffffff !important;
+    caret-color: var(--text) !important;
+}
+
+[data-baseweb="select"] > div,
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border-color: var(--border-strong) !important;
+}
+
+[data-testid="stNumberInput"] button {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border-color: var(--border-strong) !important;
+}
+
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] button {
+    color: var(--text) !important;
+}
+
+.sim-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 26px 0 12px;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.sim-title::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--es-gold-600);
+}
+.sim-control {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+}
+.scenario-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+}
+.scenario-card.highlight {
+    border: 2px solid var(--es-green-700);
+    box-shadow: var(--shadow-lg);
+}
+.scenario-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: 14px;
+}
+.scenario-card.highlight .scenario-title { color: var(--es-green-700); }
+.scenario-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    font-size: 15px;
+    color: var(--text);
+}
+.scenario-row:last-child { border-bottom: 0; }
+.scenario-row strong {
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    color: var(--text);
+}
+.scenario-card.highlight .scenario-row strong { color: var(--es-green-700); }
+.coverage-note {
+    background: var(--es-gold-100);
+    border: 1px solid var(--es-gold-600);
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-size: 14px;
+    margin-top: 16px;
+}
+
 @media (max-width: 1100px) {
     .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .leg-header { display: none; }
 }
+
+/* Strong text color overrides for Streamlit widgets. Some deployed themes render
+   widget labels/values too light over the dashboard background. */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+.stSelectbox label,
+.stNumberInput label,
+.stSlider label,
+.stTextInput label,
+.stRadio label,
+label {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+.stSelectbox [data-baseweb="select"] *,
+.stNumberInput input,
+.stTextInput input,
+.stTextArea textarea {
+    color: var(--text) !important;
+    background-color: #ffffff !important;
+    -webkit-text-fill-color: var(--text) !important;
+}
+
+[data-baseweb="select"] div,
+[data-baseweb="select"] span {
+    color: var(--text) !important;
+}
+
+/* Scenario simulator */
+.scenario-title {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin: 28px 0 12px 0;
+    color: #3d4638;
+    font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.scenario-title::before {
+    content:"";
+    display:block;
+    width:5px;
+    height:22px;
+    border-radius:6px;
+    background:var(--es-gold-600);
+}
+.scenario-card {
+    background:#ffffff;
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+    min-height:150px;
+}
+.scenario-card.highlight {
+    border:2px solid var(--es-green-700);
+    box-shadow:var(--shadow-lg);
+}
+.scenario-card-title {
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:16px;
+}
+.scenario-card.highlight .scenario-card-title { color:var(--es-green-700); }
+.scenario-row {
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+    padding:7px 0;
+    border-bottom:1px solid var(--border);
+    font-size:14px;
+    color:var(--text);
+}
+.scenario-row:last-child { border-bottom:0; }
+.scenario-row strong {
+    font-variant-numeric:tabular-nums;
+    font-weight:850;
+    color:var(--text);
+}
+.scenario-card.highlight .scenario-row strong { color:var(--es-green-700); }
+.coverage-note {
+    background:var(--es-gold-100);
+    border:1px solid var(--es-gold-600);
+    border-radius:14px;
+    padding:14px 18px;
+    margin-top:16px;
+    font-size:14px;
+    color:var(--text);
+}
+.coverage-note strong { color:var(--text); }
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -443,6 +656,7 @@ def init_state() -> None:
             }
         ],
         "ret_params": deepcopy(DEFAULT_PARAMS),
+        "ret_reduction_pct": 25,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -468,6 +682,12 @@ def apply_pending_navigation() -> None:
     target = st.session_state.pop("_pending_nav", None)
     if target in {NAV_LOAD, NAV_MARKET, NAV_BUILDER}:
         st.session_state["main_nav"] = target
+
+
+def step_retention_reduction(delta: int) -> None:
+    """Slider helper used by the retentions scenario simulator."""
+    current = int(st.session_state.get("ret_reduction_pct", 25))
+    st.session_state.ret_reduction_pct = max(0, min(100, current + int(delta)))
 
 # -----------------------------------------------------------------------------
 # FORMATTERS AND LOW-LEVEL HELPERS
@@ -1012,8 +1232,99 @@ def render_crush_cascade(position: str, values: Dict[str, float], fas_obj: float
             '</div>',
         ]
     )
+
     st.markdown(html, unsafe_allow_html=True)
     return calc["fas"]
+
+
+def render_retention_scenario_simulator(
+    *,
+    crop: str,
+    fob: float,
+    ret_pct: float,
+    fobbing: float,
+    fas_obj: float,
+    grain_fas: float,
+    crush_inputs: Optional[Dict[str, float]] = None,
+    crush_fas: Optional[float] = None,
+) -> None:
+    """Replicate the HTML retentions-reduction scenario simulator.
+
+    This section is intentionally independent from the raw Bolsa values: it only
+    models what happens if retentions are reduced. FOB remains immutable.
+    """
+    st.markdown('<div class="scenario-title">Simulador de escenario — Baja de retenciones</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        c_lbl, c_minus, c_slider, c_plus, c_val = st.columns([1.8, .35, 6.2, .35, .7], gap="medium")
+        with c_lbl:
+            st.markdown('<div style="font-weight:800;color:var(--text);padding-top:8px;">Reducción de retenciones:</div>', unsafe_allow_html=True)
+        with c_minus:
+            st.button("-", key="ret_reduction_minus", on_click=step_retention_reduction, args=(-5,), use_container_width=True)
+        with c_slider:
+            reduction_pct = st.slider(
+                "Reducción de retenciones",
+                min_value=0,
+                max_value=100,
+                step=5,
+                key="ret_reduction_pct",
+                label_visibility="collapsed",
+            )
+        with c_plus:
+            st.button("+", key="ret_reduction_plus", on_click=step_retention_reduction, args=(5,), use_container_width=True)
+        with c_val:
+            st.markdown(f'<div style="font-weight:900;color:var(--es-green-700);font-size:20px;padding-top:6px;text-align:right;">-{int(reduction_pct)}%</div>', unsafe_allow_html=True)
+
+    reduction = float(reduction_pct) / 100.0
+    new_ret_pct = float(ret_pct) * (1.0 - reduction)
+    new_grain = calc_grain_fas(fob, new_ret_pct, fobbing)["fas"]
+
+    current_crush_display = "-"
+    new_crush_display = "-"
+    if crop == "soja" and crush_inputs is not None:
+        current_crush_display = fmt_num(crush_fas if crush_fas is not None else 0.0)
+        new_crush_ret = float(crush_inputs.get("ret_sub_pct", 0.0)) * (1.0 - reduction)
+        new_crush = calc_crush(
+            crush_inputs.get("fob_aceite", 0.0),
+            crush_inputs.get("fob_harina", 0.0),
+            crush_inputs.get("coef_aceite", 0.0),
+            crush_inputs.get("coef_harina", 0.0),
+            new_crush_ret,
+            crush_inputs.get("fobbing_sub", 0.0),
+            crush_inputs.get("gto_ind", 0.0),
+        )["fas"]
+        new_crush_display = fmt_num(new_crush)
+
+    left_html = "".join([
+        '<div class="scenario-card">',
+        '<div class="scenario-card-title">Escenario actual</div>',
+        f'<div class="scenario-row"><span>Retención grano</span><strong>{fmt_num(ret_pct, 1)}%</strong></div>',
+        f'<div class="scenario-row"><span>FAS teórico</span><strong>{fmt_num(grain_fas)}</strong></div>',
+        f'<div class="scenario-row"><span>FAS crushing</span><strong>{current_crush_display}</strong></div>' if crop == "soja" else '',
+        '</div>',
+    ])
+    right_html = "".join([
+        '<div class="scenario-card highlight">',
+        '<div class="scenario-card-title">Escenario con reducción</div>',
+        f'<div class="scenario-row"><span>Retención grano</span><strong>{fmt_num(new_ret_pct, 1)}%</strong></div>',
+        f'<div class="scenario-row"><span>FAS teórico</span><strong>{fmt_num(new_grain)}</strong></div>',
+        f'<div class="scenario-row"><span>FAS crushing</span><strong>{new_crush_display}</strong></div>' if crop == "soja" else '',
+        '</div>',
+    ])
+    col_a, col_b = st.columns(2, gap="large")
+    with col_a:
+        st.markdown(left_html, unsafe_allow_html=True)
+    with col_b:
+        st.markdown(right_html, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="coverage-note">'
+        f'<strong>Conexión con coberturas:</strong> Si cubrís a FOB {fmt_num(fob, 1)} con un PUT, '
+        f'tu piso de FAS neto es <strong style="color:var(--es-green-700);">{fmt_num(grain_fas)}</strong> u$s/tn '
+        'menos la prima pagada. Usá el Builder de Coberturas para calcular el impacto exacto.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
 
 # -----------------------------------------------------------------------------
 # NAVIGATION AND GATE
@@ -1206,6 +1517,9 @@ def render_market_panel() -> None:
         ]
     )
 
+    crush_inputs: Optional[Dict[str, float]] = None
+    fas_crush: Optional[float] = None
+
     left, right = st.columns([1, 1], gap="large")
     with left:
         fas_grain = render_grain_cascade(crop, pos, fob, params["ret_pct"], params["fobbing"], params["fas_obj"])
@@ -1224,25 +1538,33 @@ def render_market_panel() -> None:
                     coef_harina = st.number_input("Coef. Harina", value=0.78, min_value=0.0, step=0.01, key="crush_coef_harina")
                     gto_ind = st.number_input("Gto Ind.", value=29.0, min_value=0.0, step=1.0, key="crush_gto_ind")
                 fobbing_sub = st.number_input("Fobbing subprod", value=19.0, min_value=0.0, step=0.5, key="crush_fobbing_sub")
-            fas_crush = render_crush_cascade(
-                pos,
-                {
-                    "fob_aceite": fob_aceite,
-                    "fob_harina": fob_harina,
-                    "coef_aceite": coef_aceite,
-                    "coef_harina": coef_harina,
-                    "ret_sub_pct": ret_sub_pct,
-                    "fobbing_sub": fobbing_sub,
-                    "gto_ind": gto_ind,
-                },
-                params["fas_obj"],
-            )
+            crush_inputs = {
+                "fob_aceite": fob_aceite,
+                "fob_harina": fob_harina,
+                "coef_aceite": coef_aceite,
+                "coef_harina": coef_harina,
+                "ret_sub_pct": ret_sub_pct,
+                "fobbing_sub": fobbing_sub,
+                "gto_ind": gto_ind,
+            }
+            fas_crush = render_crush_cascade(pos, crush_inputs, params["fas_obj"])
             st.session_state["last_fas_crush"] = fas_crush
         else:
             st.info("El modulo crushing aplica para soja. Para otros cultivos se muestra solo exportacion grano.")
 
     st.session_state["last_fas_grain"] = fas_grain
     st.session_state["last_market_fob"] = fob
+
+    render_retention_scenario_simulator(
+        crop=crop,
+        fob=fob,
+        ret_pct=params["ret_pct"],
+        fobbing=params["fobbing"],
+        fas_obj=params["fas_obj"],
+        grain_fas=fas_grain,
+        crush_inputs=crush_inputs,
+        crush_fas=fas_crush,
+    )
 
 # -----------------------------------------------------------------------------
 # BUILDER PANEL
