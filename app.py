@@ -451,6 +451,24 @@ def init_state() -> None:
 
 init_state()
 
+def request_navigation(target: str) -> None:
+    """Schedule sidebar navigation for the next rerun.
+
+    Streamlit forbids assigning to st.session_state["main_nav"] after
+    the radio widget with key="main_nav" has already been created in
+    the current run. This helper stores the target in a private key and
+    main() applies it before rendering the sidebar.
+    """
+    st.session_state["_pending_nav"] = target
+    st.rerun()
+
+
+def apply_pending_navigation() -> None:
+    """Apply a scheduled navigation target before widgets are created."""
+    target = st.session_state.pop("_pending_nav", None)
+    if target in {NAV_LOAD, NAV_MARKET, NAV_BUILDER}:
+        st.session_state["main_nav"] = target
+
 # -----------------------------------------------------------------------------
 # FORMATTERS AND LOW-LEVEL HELPERS
 # -----------------------------------------------------------------------------
@@ -1027,8 +1045,7 @@ def gate_if_needed() -> bool:
     with st.container(border=True):
         st.info("Por favor, cargue los datos en la seccion ⚙️ Carga de Datos.")
         if st.button("Ir a Carga de Datos", type="primary"):
-            st.session_state.main_nav = NAV_LOAD
-            st.rerun()
+            request_navigation(NAV_LOAD)
     return False
 
 # -----------------------------------------------------------------------------
@@ -1099,8 +1116,7 @@ def render_load_page() -> None:
     else:
         st.success("Flujo habilitado: 1) datos cargados -> 2) FOB validado -> 3) Builder activo.")
         if st.button("Abrir Panel de Mercado", type="primary"):
-            st.session_state.main_nav = NAV_MARKET
-            st.rerun()
+            request_navigation(NAV_MARKET)
 
 # -----------------------------------------------------------------------------
 # MARKET PANEL
@@ -1663,6 +1679,7 @@ def render_audit_log() -> None:
 
 
 def main() -> None:
+    apply_pending_navigation()
     page = render_sidebar()
     hero()
     if page == NAV_LOAD:
