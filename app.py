@@ -123,21 +123,21 @@ PRESETS = {
 
 
 BOLSA_FALLBACK_FULL = {
-    # Snapshot de respaldo basado en la tabla FOB Bolsa de Cereales mostrada por la fuente.
+    # Snapshot de respaldo — FOB Bolsa de Cereales al 28/04/2026.
     # Solo se usa para completar posiciones faltantes cuando el scraper cae a datos parciales.
-    "ABR 2026": {"soja": 427.0, "maiz": 215.0, "trigo": 224.0, "harina": 357.0, "aceite": 1191.0, "aceiteGirasol": 1303.0},
-    "MAY 2026": {"soja": 426.0, "maiz": 215.0, "trigo": 226.0, "harina": 355.0, "aceite": 1195.0, "aceiteGirasol": 1298.0},
-    "JUN 2026": {"soja": 428.0, "maiz": 213.0, "trigo": 230.0, "harina": 347.0, "aceite": 1154.0, "aceiteGirasol": 1298.0},
-    "JUL 2026": {"soja": 426.0, "maiz": 211.0, "trigo": 229.0, "harina": 346.0, "aceite": 1151.0, "aceiteGirasol": 1303.0},
-    "AGO 2026": {"soja": 419.0, "maiz": 215.0, "trigo": 228.0, "harina": 344.0, "aceite": 1146.0, "aceiteGirasol": 1303.0},
-    "SEP 2026": {"soja": 435.0, "maiz": 216.0, "trigo": 228.0, "harina": 342.0, "aceite": 1115.0, "aceiteGirasol": 1303.0},
-    "OCT 2026": {"soja": 447.0, "maiz": 218.0, "trigo": 228.0, "harina": 340.0, "aceite": 1122.0, "aceiteGirasol": 0.0},
-    "NOV 2026": {"soja": 443.0, "maiz": 220.0, "trigo": 227.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
-    "DIC 2026": {"soja": 444.0, "maiz": 221.0, "trigo": 234.0, "harina": 339.0, "aceite": 1102.0, "aceiteGirasol": 0.0},
-    "ENE 2027": {"soja": 436.0, "maiz": 223.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
-    "FEB 2027": {"soja": 414.0, "maiz": 225.0, "trigo": 227.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
-    "MAR 2027": {"soja": 406.0, "maiz": 215.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
-    "ABR 2027": {"soja": 408.0, "maiz": 216.0, "trigo": 229.0, "harina": 0.0, "aceite": 0.0, "aceiteGirasol": 0.0},
+    "ABR 2026": {"soja": 432.0, "maiz": 217.0, "trigo": 222.0, "harina": 356.0, "aceite": 1189.0, "aceiteGirasol": 1293.0},
+    "MAY 2026": {"soja": 432.0, "maiz": 218.0, "trigo": 228.0, "harina": 355.0, "aceite": 1195.0, "aceiteGirasol": 1289.0},
+    "JUN 2026": {"soja": 434.0, "maiz": 217.0, "trigo": 232.0, "harina": 353.0, "aceite": 1172.0, "aceiteGirasol": 1289.0},
+    "JUL 2026": {"soja": 436.0, "maiz": 215.0, "trigo": 234.0, "harina": 352.0, "aceite": 1164.0, "aceiteGirasol": 1293.0},
+    "AGO 2026": {"soja": 438.0, "maiz": 218.0, "trigo": 231.0, "harina": 350.0, "aceite": 1162.0, "aceiteGirasol": 1293.0},
+    "SEP 2026": {"soja": 434.0, "maiz": 221.0, "trigo": 229.0, "harina": 349.0, "aceite": 1128.0, "aceiteGirasol": 1293.0},
+    "OCT 2026": {"soja": 446.0, "maiz": 223.0, "trigo": 231.0, "harina": 345.0, "aceite": 1133.0, "aceiteGirasol": 1273.0},
+    "NOV 2026": {"soja": 447.0, "maiz": 225.0, "trigo": 232.0, "harina": 345.0, "aceite": 1114.0, "aceiteGirasol": 1273.0},
+    "DIC 2026": {"soja": 448.0, "maiz": 226.0, "trigo": 238.0, "harina": 345.0, "aceite": 1117.0, "aceiteGirasol": 1273.0},
+    "ENE 2027": {"soja": 441.0, "maiz": 228.0, "trigo": 241.0, "harina": 0.0,   "aceite": 1109.0, "aceiteGirasol": 1273.0},
+    "FEB 2027": {"soja": 417.0, "maiz": 230.0, "trigo": 232.0, "harina": 0.0,   "aceite": 1093.0, "aceiteGirasol": 1273.0},
+    "MAR 2027": {"soja": 410.0, "maiz": 220.0, "trigo": 234.0, "harina": 0.0,   "aceite": 1093.0, "aceiteGirasol": 1273.0},
+    "ABR 2027": {"soja": 411.0, "maiz": 220.0, "trigo": 234.0, "harina": 0.0,   "aceite": 1078.0, "aceiteGirasol": 1273.0},
 }
 
 # -----------------------------------------------------------------------------
@@ -2158,7 +2158,7 @@ def render_market_panel() -> None:
 
     expected_txt = ""
     if pos == "ABR 2026":
-        expected_txt = " Control ABR 2026: Soja=427, Aceite=1191."
+        expected_txt = " Control ABR 2026: Soja=432, Aceite=1189."
     st.info(
         f"Diagnostico FOB [OK]: fuente Bolsa para {CROP_LABELS.get(crop, crop)} / {compact_pos_label(pos)} = {fmt_num(fob)}. "
         f"Valor usado en cascada = {fmt_num(fob)}. Diferencia = {fmt_signed(fob - fob)}. "
