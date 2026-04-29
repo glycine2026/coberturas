@@ -2042,13 +2042,24 @@ def render_load_page() -> None:
         with st.container(border=True):
             st.subheader("Bolsa de Cereales")
             st.caption("Fuente de FOB, harina, aceite y aceite de girasol. Estos valores se guardan crudos, sin descuentos.")
-            if st.button("Actualizar FOB", type="primary", use_container_width=True):
-                with st.spinner("Consultando Bolsa de Cereales..."):
-                    try:
-                        load_bolsa(force=True)
-                        st.success("FOB actualizado correctamente")
-                    except Exception as exc:
-                        st.error(f"Error al cargar Bolsa: {exc}")
+            from scraper import render_csv_uploader
+            datos_csv = render_csv_uploader()
+            if datos_csv:
+                normalized = normalize_bolsa_data(datos_csv)
+                st.session_state.data_bolsa = normalized
+                st.session_state.bolsa_loaded_at = datetime.now()
+                if not st.session_state.market_position or st.session_state.market_position not in normalized:
+                    st.session_state.market_position = select_default_position(normalized)
+                st.session_state.data_loaded = True
+                st.rerun()
+            if not st.session_state.data_bolsa:
+                if st.button("Usar datos de respaldo (28/04/2026)", use_container_width=True):
+                    with st.spinner("Cargando datos de respaldo..."):
+                        try:
+                            load_bolsa(force=True)
+                            st.success("Datos de respaldo cargados.")
+                        except Exception as exc:
+                            st.error(f"Error: {exc}")
             if st.session_state.bolsa_loaded_at:
                 st.caption(f"Ultima actualizacion: {st.session_state.bolsa_loaded_at:%d/%m/%Y %H:%M}")
             if st.session_state.data_bolsa:
